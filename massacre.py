@@ -46,12 +46,11 @@ t = np.linspace(0, samples_amount[sig_num] / sample_freq[sig_num], samples_amoun
 
 data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
 spikes = []
-spikes.append(data.loc[:, "latency"].to_numpy())
+spikes.append(data.loc[:, "Latency_corrected (sec)"].to_numpy())
 spikes.append(data.loc[:, "duration"].to_numpy())
 spikes = np.array(spikes)
 
 sample_len = floor(np.max(spikes[1]))
-print(sample_len)
 
 res = []
 
@@ -59,7 +58,7 @@ for i in range(len(spikes[0])):
     spike = []
     time = []
     spike_len = floor(spikes[1][i])
-    spike_start = floor(spikes[0][i])
+    spike_start = (np.abs(t - spikes[0][i])).argmin()
     start =  spike_start - floor((sample_len - spike_len) / 2)
     end = spike_start + spike_len + floor((51 - spike_len) / 2)
     if (end-start) != sample_len:
@@ -67,7 +66,6 @@ for i in range(len(spikes[0])):
     for n in range(start, end):
         spike.append(sig[n])
         time.append(t[n])
-    print('num of spike: ', i, ' spike len: ', spike_len, ' latency of sample: ', end-start)
     plt.plot(time, spike, figure=plt.figure(figsize=(10.0, 6.0)))
     plt.show()
     res.append(spike)
