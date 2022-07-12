@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 
 
-#получаем данные для обучения два файла - со спайками и без
-def load_data(spikes_path, no_spikes_path = None):
+# get two datafiles' paths for training - with and without spikes
+def load_data(spikes_path, no_spikes_path=None):
     data = pd.read_csv(spikes_path)
     data['y'] = [1 for i in range(data.shape[0])]
 
@@ -19,10 +19,9 @@ def load_data(spikes_path, no_spikes_path = None):
     return data
 
 
-
-#перемешиваем данные, разрезаем на признаки и ответы
-#выделяем часть данных для обучения и проверки
-#нормировка данных
+# shuffle the data, cut into signs and answers
+# allocate part of the data for training and verification
+# data normalization
 def fit_data(data):
     data = data.sample(frac=1)
     y = data['y']
@@ -32,21 +31,22 @@ def fit_data(data):
                                                         random_state=42,
                                                         stratify=y
                                                         )
-    #конвертируем датафрейм в массив, почему-то сохраняются индексы, поэтому удаляем первый элемент
+    # convert the dataframe into an array, for some reason the indexes are saved, so we delete the first element
     X_train = np.array([[element[i] for i in range(len(element)) if i != 0] for element in X_train.to_numpy()])
     X_test = np.array([[element[i] for i in range(len(element)) if i != 0] for element in X_test.to_numpy()])
     y_train = y_train.to_numpy()
     y_test = y_test.to_numpy()
 
-    #нормировка признаков
-    X_train = np.array([[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_train])
-    X_test = np.array([[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_test])
+    # normalize
+    X_train = np.array(
+        [[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_train])
+    X_test = np.array(
+        [[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_test])
 
     return (X_train, X_test, y_train, y_test)
 
 
-
-#пример простейшей нейросети
+# example of the simplest neural network
 def simple_network():
     path = 'spikes/3_0.csv'
     data = load_data(path)
@@ -54,15 +54,14 @@ def simple_network():
 
     signal_size = x_train.shape[1]
     model = keras.Sequential([Flatten(input_shape=(signal_size, 1)),
-                             Dense(100, activation='relu'),
-                             Dense(1, activation='softmax')
-                             ])
+                              Dense(100, activation='relu'),
+                              Dense(1, activation='softmax')
+                              ])
 
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy']
                   )
-
 
     model.fit(x_train, y_train, epochs=5)
     model.evaluate(x_test, y_test)
@@ -71,5 +70,3 @@ def simple_network():
 
 if __name__ == '__main__':
     simple_network()
-
-
