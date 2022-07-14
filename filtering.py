@@ -3,14 +3,24 @@ import matplotlib.pyplot as plt
 import scipy.fft as spf
 from scipy import signal
 
+# This script filters low frequencies from raw files,
+# removes noises and normalizes data to (-1, 1) range
+
+# save filtered signal as .npy to ./data/np_filt folder
 SAVE_RESULT = True
+
+# Cut 25, 75 and 125 Hz or not
+ADDITIONAL_FREQS = False
+
+# Cut 100 Hz
+SECOND_HARM = True
 
 names = ['27-02-2015_19-49_reduced 40 sec',
          '27-02-2015_19-49_reduced 300 sec',
          '28-05-2016_19-00_reduced_IIS']
 
-fnum = 0
-channel = 1
+fnum = 2
+channel = 6
 fname = 'data/np_raw/' + names[fnum] + ' Channel ' + str(channel) + '       .npy'
 
 sig_mod = np.load(fname)
@@ -33,7 +43,6 @@ t = np.linspace(0, t_stop, samples_amount)
 
 piece = int(10)
 
-
 # Cuts every frequency below freq
 def high_pass(signal, freq, sample_frequency):
     m = np.size(signal)
@@ -55,27 +64,50 @@ yf = spf.rfft(sig)
 yf_filt = spf.rfft(sig_filt)
 # ---------------------------------------------------------- #
 
-# ------------------ Filtering 50 Hz noise ----------------- #
-ord, wn = signal.buttord([49, 51], [49.9, 50.1], 5, 50, fs=fs)
-print(ord, wn)
-sos = signal.butter(ord, wn, 'bs', fs=fs, output='sos')
+# ------------------ Filtering noise ----------------- #
+sig_den = sig_filt
+sos = []
 
-ord, wn = signal.buttord([99, 101], [99.95, 100.05], 3, 30, fs=fs)
-print(ord, wn)
-sos1 = signal.butter(ord, wn, 'bs', fs=fs, output='sos')
-# sos = signal.butter(1, (49.5, 50.52), 'bs', fs=fs, output='sos')
+# 50 Hz
+ord, wn = signal.buttord([49, 51], [49.9, 50.1], 5, 30, fs=fs)
+sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
 
-sig_den = signal.sosfilt(sos, sig_filt)
-sig_den = signal.sosfilt(sos1, sig_den)
+# 100 Hz
+if SECOND_HARM:
+    ord, wn = signal.buttord([99, 101], [99.95, 100.05], 3, 30, fs=fs)
+    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
+
+# 25, 75, 125 Hz
+if ADDITIONAL_FREQS:
+    ord, wn = signal.buttord([24.5, 26.5], [24.9, 25.1], 2, 5, fs=fs)
+    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
+    ord, wn = signal.buttord([74.5, 76.5], [74.9, 75.1], 2, 5, fs=fs)
+    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
+    # 125 Hz works only for 250 Hz sample frequency!
+    ord, wn = signal.buttord(124.7, 124.8, 15, 25, fs=fs)
+    sos.append(signal.butter(ord, wn, 'lp', fs=fs, output='sos'))
+
+for s in sos:
+    sig_den = signal.sosfilt(s, sig_den)
+
+
 yf_den = spf.rfft(sig_den)
 # ---------------------------------------------------------- #
 
-test = 0
-if test:
-    yf_filt[:] = 10
-    sig_filt = spf.irfft(yf_filt)
-    sig_den = signal.sosfilt(sos, sig_filt)
-    yf_den = spf.rfft(sig_den)
+# -------------------Normalizing---------------------------- #
+up = np.max(sig_den)
+down = np.min(sig_den)
+b = (up + down) / (up - down)
+a = (1 - b) / down
+sig_den = a * sig_den + b
+# ---------------------------------------------------------- #
+
+# test = 0
+# if test:
+#     yf_filt[:] = 10
+#     sig_filt = spf.irfft(yf_filt)
+#     sig_den = signal.sosfilt(sos, sig_filt)
+#     yf_den = spf.rfft(sig_den)
 
 
 fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])

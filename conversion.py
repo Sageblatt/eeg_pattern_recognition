@@ -2,6 +2,8 @@ import numpy as np
 from EDFlib import edfreader
 import matplotlib.pyplot as plt
 
+# This script converts .bdf files from ./data/raw folder to .npy
+# files in ./data/np_raw folder for further interactions
 
 # open signal as plot in mpl; incompatible with save_all mode
 PREVIEW = False
