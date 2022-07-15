@@ -15,9 +15,12 @@ ADDITIONAL_FREQS = False
 # Cut 100 Hz
 SECOND_HARM = True
 
-names = ['27-02-2015_19-49_reduced 40 sec',
-         '27-02-2015_19-49_reduced 300 sec',
-         '28-05-2016_19-00_reduced_IIS']
+# Enables matplotlib plot of signal
+PREVIEW = False
+
+names = ['40',
+         '300',
+         'IIS']
 
 fnum = 2
 channel = 6
@@ -109,18 +112,18 @@ sig_den = a * sig_den + b
 #     sig_den = signal.sosfilt(sos, sig_filt)
 #     yf_den = spf.rfft(sig_den)
 
+if PREVIEW:
+    fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])
 
-fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])
-
-axes[0, 0].plot(t, sig)
-axes[1, 0].plot(xf, np.abs(yf))
-axes[0, 1].plot(t, sig_filt)
-axes[1, 1].plot(xf, np.abs(yf_filt))
-axes[0, 2].plot(t, sig_den)
-axes[1, 2].plot(xf, np.abs(yf_den))
+    axes[0, 0].plot(t, sig)
+    axes[1, 0].plot(xf, np.abs(yf))
+    axes[0, 1].plot(t, sig_filt)
+    axes[1, 1].plot(xf, np.abs(yf_filt))
+    axes[0, 2].plot(t, sig_den)
+    axes[1, 2].plot(xf, np.abs(yf_den))
 
 
-plt.show()
+    plt.show()
 
 # first element of array is sampling frequency
 if SAVE_RESULT:

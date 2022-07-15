@@ -6,20 +6,20 @@ import matplotlib.pyplot as plt
 # files in ./data/np_raw folder for further interactions
 
 # open signal as plot in mpl; incompatible with save_all mode
-PREVIEW = False
+PREVIEW = 1
 
 # show available data for each channel
 ADDITIONAL_DATA = False
 
 # save signal as numpy array to data/np_raw folder (first value in array is sample frequency, then comes raw signal)
-SAVE_TO_NUMPY = True
+SAVE_TO_NUMPY = 0
 # save every channel in file or one chosen
-SAVE_ALL = True
+SAVE_ALL = 1
 
 # choose file
-names = ['27-02-2015_19-49_reduced 40 sec',
-         '27-02-2015_19-49_reduced 300 sec',
-         '28-05-2016_19-00_reduced_IIS']
+names = ['40',
+         '300',
+         'IIS']
 
 fnum = 2
 fname = 'data/raw/' + names[fnum] + '.bdf'
