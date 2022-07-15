@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.fft as spf
 from scipy import signal
+from os import path
 
 # This script filters low frequencies from raw files,
 # removes noises and normalizes data to (-1, 1) range
@@ -24,9 +25,11 @@ names = ['40',
 
 fnum = 2
 channel = 6
-fname = 'data/np_raw/' + names[fnum] + ' Channel ' + str(channel) + '       .npy'
+dir_path = path.dirname(path.realpath(__file__))
+fname = path.join(dir_path, "data", "np_raw", names[fnum] + ' Channel ' + str(channel) + '       .npy')
 
 sig_mod = np.load(fname)
+del fname
 fs = sig_mod[0]
 sig = sig_mod[1:]
 samples_amount = len(sig)
@@ -128,7 +131,8 @@ if PREVIEW:
 # first element of array is sampling frequency
 if SAVE_RESULT:
     sig_mod = np.concatenate([[fs], sig_den])
-    np.save('data/np_filt/' + names[fnum] + ' Channel_' + str(channel) + '_filt', sig_mod)
+    fname = path.join(dir_path, "data", "np_filt", names[fnum] + ' Channel_' + str(channel) + '_filt')
+    np.save(fname, sig_mod)
 
 # Test filter's frequency response for de-noise
 # b, a = signal.butter(2, (49.8, 50.22), 'bandstop', analog=True)
