@@ -83,7 +83,8 @@ for i in range(len(spikes[0])):
 
 res = np.array(res, dtype=object)
 res = np.asanyarray(res)
-pd.DataFrame(res).to_csv('spikes/' + str(fnum) + '_' + str(sig_num) + '.csv')
+
+pd.DataFrame(res).to_csv('spikes/' + str(fnum) + '.csv', mode='a')
 
 ends = [0] + ends
 
@@ -99,5 +100,5 @@ for i in range(len(starts)-1):
             
 not_spikes = np.array(not_spikes, dtype=object)
 not_spikes = np.asanyarray(not_spikes)
-pd.DataFrame(not_spikes).to_csv('not_spikes/' + str(fnum) + '_' + str(sig_num) + '.csv')
+pd.DataFrame(not_spikes).to_csv('not_spikes/' + str(fnum) + '.csv', mode='a')
 print(len(not_spikes))
