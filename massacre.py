@@ -1,45 +1,12 @@
 from math import floor
 import numpy as np
 import pandas as pd
-from EDFlib import edfreader
 import matplotlib.pyplot as plt
 
-#-----------------------------------------------------------------------------------------#
-ADDITIONAL_DATA = False
+for sig_num in range(1, 7):
 
-fname = 'data/raw/IIS.bdf'
-hdl = edfreader.EDFreader(fname)
-
-edfsignals = hdl.getNumSignals()
-samples_amount = np.zeros(edfsignals, dtype = np.int32)
-sample_freq = np.zeros(edfsignals)
-
-print("Number of signals in file: %d" % (hdl.getNumSignals()))
-
-print("\nSignal list:")
-for i in range(edfsignals):
-    print("\nSig. %d: %s" % (i, hdl.getSignalLabel(i)))
-    samples_amount[i] = hdl.getTotalSamples(i)
-    sample_freq[i] = hdl.getSampleFrequency(i)
-    if ADDITIONAL_DATA:
-        print("Samplefrequency: %f Hz" % (hdl.getSampleFrequency(i)))
-        print("Physical dimension: %s" % (hdl.getPhysicalDimension(i)))
-        print("Physical minimum: %f" % (hdl.getPhysicalMinimum(i)))
-        print("Physical maximum: %f" % (hdl.getPhysicalMaximum(i)))
-        print("Digital minimum: %d" % (hdl.getDigitalMinimum(i)))
-        print("Digital maximum: %d" % (hdl.getDigitalMaximum(i)))
-        print("Total samples in file: %d" % (hdl.getTotalSamples(i)))
-
-for sig_num in range(edfsignals - 3):
-
-    sig = np.empty(samples_amount[sig_num], dtype = np.int32)
-
-    hdl.rewind(0)
-    hdl.readSamples(sig_num, sig, samples_amount[sig_num])
-
-    t = np.linspace(0, samples_amount[sig_num] / sample_freq[sig_num], samples_amount[sig_num])
-
-#---------------------------------------------------------------------------------------------#
+    sig = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
+    t = np.linspace(0, len(sig) / 250.42798142, len(sig))
 
     data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
     spikes = []
@@ -76,6 +43,15 @@ for sig_num in range(edfsignals - 3):
         #plt.plot(time, spike, figure=plt.figure(figsize=(10.0, 6.0)))
         #plt.show()
         
+        up = np.max(spike)
+        down = np.min(spike)
+        b = (up + down) / (up - down)
+        a = (1 - b) / down
+        spike = a * np.array(spike) + b
+        
+        #plt.plot(time, spike, figure=plt.figure(figsize=(10.0, 6.0)))
+        #plt.show()
+        
         res.append(spike)
 
     res = np.array(res, dtype=object)
@@ -92,11 +68,16 @@ for sig_num in range(edfsignals - 3):
                 not_spike = []
                 for k in range(ends[i] + 51 * t, ends[i] + 51 * (t+1) + 1):
                     not_spike.append(sig[k])
+                
+                up = np.max(not_spike)
+                down = np.min(not_spike)
+                b = (up + down) / (up - down)
+                a = (1 - b) / down
+                not_spike = a * np.array(not_spike) + b
+                
                 not_spikes.append(not_spike) 
                 t += 1
                 
     not_spikes = np.array(not_spikes, dtype=object)
     not_spikes = np.asanyarray(not_spikes)
     pd.DataFrame(not_spikes).to_csv('data/not_spikes.csv', mode='a')
-    
-hdl.close()
