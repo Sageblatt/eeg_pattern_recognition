@@ -10,7 +10,8 @@ import scipy.fft as spf
 
 ADDITIONAL_DATA = False
 
-fname = 'C:\\Users\\Anton\\Downloads\\Spikes_sample\\data\\data\\np_filt\\27-02-2015_19-49_reduced 300 sec Channel_2_filt.npy'
+fname = 'data\\np_filt\\27-02-2015_19-49_reduced 300 sec Channel_2_filt.npy'
+fnum = 1
 sig_mod = np.load(fname)
 fs = sig_mod[0]
 sig = sig_mod[1: ] 
@@ -51,7 +52,7 @@ wwigth_avg = mean(ddelta)
 '''
 
 wigth_avg = mean(delta)
-print(wigth_avg)
+#print(wigth_avg)
 
 spikes_num = 0
 spikes = []
@@ -85,13 +86,26 @@ while i < len(high_peaks) - 2:
         i = i + 4
     else:
         i = i + 1
+
+'''
 print(spikes_num)
+for i in range(len(times)):
+    print(str(len(spikes[i])) + '  ' + str(times[i][0]))
+'''
+#------------------------------------------------------------------------------------
+duration = [len(spikes[i]) for i in range(len(spikes))]
+latency = [times[i][0] for i in range(len(times))]
 
+res = np.array([duration, latency])
+res = np.asanyarray(res)
+res1 = pd.DataFrame(res).transpose()
+res1.to_csv('spikes' + str(fnum) + '.csv', mode='a')
 
+'''
 for i in range(len(times)):
     plt.plot(times[i], spikes[i])
     plt.show()
-'''
+    
 for i in range(len(times)):
     print(times[i][0], spikes[i][0])
 '''
