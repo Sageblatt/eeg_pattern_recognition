@@ -1,28 +1,33 @@
 import numpy as np
 from EDFlib import edfreader
 import matplotlib.pyplot as plt
+from os import path
 
+# This script converts .bdf files from ./data/raw folder to .npy
+# files in ./data/np_raw folder for further interactions
 
 # open signal as plot in mpl; incompatible with save_all mode
-PREVIEW = False
+PREVIEW = 1
 
 # show available data for each channel
 ADDITIONAL_DATA = False
 
 # save signal as numpy array to data/np_raw folder (first value in array is sample frequency, then comes raw signal)
-SAVE_TO_NUMPY = True
+SAVE_TO_NUMPY = 1
 # save every channel in file or one chosen
-SAVE_ALL = True
+SAVE_ALL = 1
 
 # choose file
-names = ['27-02-2015_19-49_reduced 40 sec',
-         '27-02-2015_19-49_reduced 300 sec',
-         '28-05-2016_19-00_reduced_IIS']
+names = ['40',
+         '300',
+         'IIS']
 
 fnum = 2
-fname = 'data/raw/' + names[fnum] + '.bdf'
+dir_path = path.dirname(path.realpath(__file__))
+fname = path.join(dir_path, "data", "raw", names[fnum] + '.bdf')
 
 hdl = edfreader.EDFreader(fname)
+del fname
 
 edfsignals = hdl.getNumSignals()
 samples_amount = np.zeros(edfsignals, dtype=np.int32)
@@ -65,7 +70,8 @@ if not SAVE_ALL:
 
     if SAVE_TO_NUMPY:
         sig_mod = np.concatenate([[sample_freq[n]], sig])
-        np.save('data/np_raw/' + names[fnum] + ' ' + channel_names[n], sig_mod)
+        fname = path.join(dir_path, "data", "np_raw", names[fnum] + ' ' + channel_names[n])
+        np.save(fname, sig_mod)
 else:
     for i in range(edfsignals):
         sig = np.empty(samples_amount[i], dtype=np.int32)
@@ -74,5 +80,6 @@ else:
         hdl.readSamples(i, sig, samples_amount[i])
 
         sig_mod = np.concatenate([[sample_freq[i]], sig])
-        np.save('data/np_raw/' + names[fnum] + ' ' + channel_names[i], sig_mod)
+        fname = path.join(dir_path, "data", "np_raw", names[fnum] + ' ' + channel_names[i])
+        np.save(fname, sig_mod)
     hdl.close()
