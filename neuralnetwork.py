@@ -4,12 +4,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import recall_score, precision_score, accuracy_score, confusion_matrix
 from keras.utils.np_utils import to_categorical
-import seaborn as sns
+from tensorflow.python.keras.metrics import Recall, TruePositives, FalseNegatives
 
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import tensorflow as tf
 
 
 # get two datafiles' paths for training - with and without spikes
@@ -28,8 +28,10 @@ def load_data(spikes_path, no_spikes_path=None):
 # shuffle the data, cut into signs and answers
 # allocate part of the data for training and verification
 # data normalization
-def fit_data(data, normolize=False):
-    data = data.sample(frac=1)
+def fit_data(data, normolize=False, randomize=False):
+    if randomize:
+        data = data.sample(frac=1)
+
     y = data['y']
     X = data.drop('y', axis=1)
     X_train, X_test, y_train, y_test = train_test_split(X, y,
@@ -68,13 +70,16 @@ def simple_network(save_fig=False, batch_size=16, validation_split=0.2):
                               Dense(2, activation='softmax')
                               ])
 
+    metrics = [TruePositives(name='tp'), FalseNegatives(name='fn'), Recall(name='recall'), 'accuracy']
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
-                  metrics=[tf.keras.metrics.Recall(), 'accuracy']
+                  metrics=metrics
                   )
 
     history = model.fit(x_train, y_train, epochs=10, batch_size=batch_size, validation_split=validation_split)
 
+    #plt.plot(np.array(history.history['tp']) / (np.array(history.history['tp']) + np.array(history.history['fn'])))
+    #plt.plot(np.array(history.history['val_tp']) / (np.array(history.history['val_tp'])  + np.array(history.history['val_fn'])))
     plt.plot(history.history['recall'])
     plt.plot(history.history['val_recall'])
     plt.grid(True)
@@ -93,9 +98,14 @@ def simple_network(save_fig=False, batch_size=16, validation_split=0.2):
     y_test_cat = y_test.argmax(axis=1)
     y_pred_cat = y_pred.argmax(axis=1)
 
-    # print test metrics
-    print('RECALL SCORE: ', recall_score(y_test_cat, y_pred_cat, average='binary'))
-    print('PRECISION SCORE: ', precision_score(y_test_cat, y_pred_cat, average='binary'))
+    '''limit = 0.5
+    y_pred_cat = y_pred[:, 1]
+    y_pred_cat[y_pred_cat >= limit] = 1
+    y_pred_cat[y_pred_cat < limit] = 0'''
+
+    # print metrics
+    print('RECALL SCORE: ', recall_score(y_test_cat, y_pred_cat))
+    print('PRECISION SCORE: ', precision_score(y_test_cat, y_pred_cat))
     print('ACCURACY SCORE: ', accuracy_score(y_test_cat, y_pred_cat))
 
     # plot confusion_matrix
