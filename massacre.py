@@ -57,7 +57,7 @@ for sig_num in range(1, 7):
     res = np.array(res, dtype=object)
     res = np.asanyarray(res)
 
-    pd.DataFrame(res).to_csv('data/spikes.csv', mode='a')
+    pd.DataFrame(res).to_csv('data/spikes.csv', mode='a', index = False, header = False)
 
     ends = [0] + ends
 
@@ -80,4 +80,4 @@ for sig_num in range(1, 7):
                 
     not_spikes = np.array(not_spikes, dtype=object)
     not_spikes = np.asanyarray(not_spikes)
-    pd.DataFrame(not_spikes).to_csv('data/not_spikes.csv', mode='a')
+    pd.DataFrame(not_spikes).to_csv('data/not_spikes.csv', mode='a', index = False, header = False)
