@@ -62,11 +62,11 @@ for sig_num in range(1, 7):
     ends = [0] + ends
 
     for i in range(len(starts)-1):
-       if (starts[i] - ends[i]) >= 51:
+       if (starts[i] - ends[i]) >= 50:
             t = 0
-            while ((starts[i] - (ends[i] + 51 * t)) >= 51):
+            while ((starts[i] - (ends[i] + 50 * t)) >= 50):
                 not_spike = []
-                for k in range(ends[i] + 51 * t, ends[i] + 51 * (t+1) + 1):
+                for k in range(ends[i] + 50 * t, ends[i] + 50 * (t+1) + 1):
                     not_spike.append(sig[k])
                 
                 up = np.max(not_spike)
