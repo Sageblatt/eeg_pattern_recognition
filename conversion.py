@@ -10,17 +10,19 @@ from os import path
 PREVIEW = 1
 
 # show available data for each channel
-ADDITIONAL_DATA = False
+ADDITIONAL_DATA = True
 
 # save signal as numpy array to data/np_raw folder (first value in array is sample frequency, then comes raw signal)
-SAVE_TO_NUMPY = 1
+SAVE_TO_NUMPY = 0
 # save every channel in file or one chosen
-SAVE_ALL = 1
+SAVE_ALL = 0
 
 # choose file
 names = ['40',
          '300',
-         'IIS']
+         'IIS',
+         'annot',
+         'big']
 
 fnum = 2
 dir_path = path.dirname(path.realpath(__file__))
@@ -44,13 +46,29 @@ for i in range(edfsignals):
     sample_freq[i] = hdl.getSampleFrequency(i)
     channel_names.append(hdl.getSignalLabel(i))
     if ADDITIONAL_DATA:
-        print("Samplefrequency: %f Hz" % (hdl.getSampleFrequency(i)))
+        print("Sample frequency: %f Hz" % (hdl.getSampleFrequency(i)))
         print("Physical dimension: %s" % (hdl.getPhysicalDimension(i)))
         print("Physical minimum: %f" % (hdl.getPhysicalMinimum(i)))
         print("Physical maximum: %f" % (hdl.getPhysicalMaximum(i)))
         print("Digital minimum: %d" % (hdl.getDigitalMinimum(i)))
         print("Digital maximum: %d" % (hdl.getDigitalMaximum(i)))
         print("Total samples in file: %d" % (hdl.getTotalSamples(i)))
+
+n = len(hdl.annotationslist)
+
+print("\nannotations in file: %d" %(n))
+
+if n > 10:
+  n = 10
+
+for i in range(0, n):
+  print("annotation: onset: %d:%02d:%02.3f    description: %s    duration: %d" %(\
+        (hdl.annotationslist[i].onset / 10000000) / 3600, \
+        ((hdl.annotationslist[i].onset / 10000000) % 3600) / 60, \
+        (hdl.annotationslist[i].onset / 10000000) % 60, \
+        hdl.annotationslist[i].description, \
+        hdl.annotationslist[i].duration))
+
 
 if not SAVE_ALL:
     print("Select signal (enter value from 0 to %d):" % (edfsignals - 1))
@@ -63,6 +81,7 @@ if not SAVE_ALL:
     hdl.close()
 
     t = np.linspace(0, samples_amount[n] / sample_freq[n], samples_amount[n])
+
 
     if PREVIEW:
         plt.plot(t, sig, figure=plt.figure(figsize=(10.0, 6.0)))
