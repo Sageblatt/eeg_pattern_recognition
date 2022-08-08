@@ -2,6 +2,19 @@ from math import floor
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
+
+
+# Deletes previously made files 
+# to protect data from repeating
+DELETE_PREV_FILES = False
+
+if DELETE_PREV_FILES:
+    try:
+        os.remove('data/not_spikes.csv')
+        os.remove('data/spikes.csv')
+    except FileNotFoundError:
+        print('Files not found, nothing to remove')
 
 SPIKE_IN_THE_MIDDLE    = True
 SPIKE_IN_THE_END       = False
@@ -54,6 +67,8 @@ def normalization(spike):
     return(spike)
 
 for sig_num in range(1, 7):
+    if sig_num == 5:
+        continue
 
     sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
     fs = sig_[0]
