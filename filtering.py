@@ -8,140 +8,136 @@ from os import path
 # removes noises and normalizes data to (-1, 1) range
 
 # save filtered signal as .npy to ./data/np_filt folder
-SAVE_RESULT = True
-
-# Cut 25, 75 and 125 Hz or not
-ADDITIONAL_FREQS = False
-
-# Cut 100 Hz
-SECOND_HARM = True
+SAVE_RESULT = 0
 
 # Enables matplotlib plot of signal
-PREVIEW = False
+PREVIEW = 1
 
-names = ['40',
-         '300',
-         'IIS']
+def cut_low(s, fs):  
+    # Cuts every frequency below freq
+    def high_pass(signal, freq, sample_frequency):
+        m = np.size(signal)
+        x_f = spf.rfftfreq(m, 1 / sample_frequency)
+        y_f = spf.rfft(signal)
+        y_f[(x_f <= freq)] = 0
+        return spf.irfft(y_f), y_f
+    
+    # Optional choice for slicing signal before filtering
+    # piece = fs
+    # if t_stop % 4 == 0:
+    #     piece = sample_freq[n] * 4
+    # elif t_stop % 3 == 0:
+    #     piece = sample_freq[n] * 3
+    # elif t_stop % 2 == 0:
+    #     piece = sample_freq[n] * 2
+    
+    piece = int(10)
+    cut_sig = np.array_split(s, len(s) / piece)
 
-fnum = 2
-channel = 6
-dir_path = path.dirname(path.realpath(__file__))
-fname = path.join(dir_path, "data", "np_raw", names[fnum] + ' Channel ' + str(channel) + '       .npy')
+    for i in range(len(cut_sig)):
+        cut_sig[i], _ = high_pass(cut_sig[i], 1, fs)
 
-sig_mod = np.load(fname)
-del fname
-fs = sig_mod[0]
-sig = sig_mod[1:]
-samples_amount = len(sig)
-
-t_stop = samples_amount / fs
-t = np.linspace(0, t_stop, samples_amount)
-
-# ------------------ Cutting low frequencies ----------------- #
-# Optional choice for slicing signal before filtering
-# piece = fs
-# if t_stop % 4 == 0:
-#     piece = sample_freq[n] * 4
-# elif t_stop % 3 == 0:
-#     piece = sample_freq[n] * 3
-# elif t_stop % 2 == 0:
-#     piece = sample_freq[n] * 2
-
-piece = int(10)
-
-# Cuts every frequency below freq
-def high_pass(signal, freq, sample_frequency):
-    m = np.size(signal)
-    x_f = spf.rfftfreq(m, 1 / sample_frequency)
-    y_f = spf.rfft(signal)
-    y_f[(x_f <= freq)] = 0
-    return spf.irfft(y_f), y_f
+    sig_filt = np.concatenate(cut_sig)
+    yf_filt = spf.rfft(sig_filt)
+    return sig_filt, yf_filt
 
 
-cut_sig = np.array_split(sig, samples_amount / piece)
-
-for i in range(len(cut_sig)):
-    cut_sig[i], _ = high_pass(cut_sig[i], 1, fs)
-
-sig_filt = np.concatenate(cut_sig)
-
-xf = spf.rfftfreq(samples_amount, 1 / fs)
-yf = spf.rfft(sig)
-yf_filt = spf.rfft(sig_filt)
-# ---------------------------------------------------------- #
-
-# ------------------ Filtering noise ----------------- #
-sig_den = sig_filt
-sos = []
-
-# 50 Hz
-ord, wn = signal.buttord([49, 51], [49.9, 50.1], 5, 30, fs=fs)
-sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
-
-# 100 Hz
-if SECOND_HARM:
-    ord, wn = signal.buttord([99, 101], [99.95, 100.05], 3, 30, fs=fs)
-    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
-
-# 25, 75, 125 Hz
-if ADDITIONAL_FREQS:
-    ord, wn = signal.buttord([24.5, 26.5], [24.9, 25.1], 2, 5, fs=fs)
-    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
-    ord, wn = signal.buttord([74.5, 76.5], [74.9, 75.1], 2, 5, fs=fs)
-    sos.append(signal.butter(ord, wn, 'bs', fs=fs, output='sos'))
-    # 125 Hz works only for 250 Hz sample frequency!
-    ord, wn = signal.buttord(124.7, 124.8, 15, 25, fs=fs)
-    sos.append(signal.butter(ord, wn, 'lp', fs=fs, output='sos'))
-
-for s in sos:
-    sig_den = signal.sosfilt(s, sig_den)
+def analyze(s, fs):
+    xf = spf.rfftfreq(samples_amount, 1 / fs)
+    yf = np.abs(spf.rfft(s))
+    
+    freqs = [25, 50, 75, 100, 125]
+    coefs = [5, 3, 5, 3, 5]
+    bool_freqs = np.zeros(5)
+    
+    for i in range(len(freqs)):
+        if np.max(yf[np.abs(xf - freqs[i]) < 0.3]) > \
+            coefs[i] * np.mean(yf[np.logical_and(np.abs(xf - freqs[i]) > 0.5, np.abs(xf - freqs[i]) < 1.5)]):
+            bool_freqs[i] = 1
+    return bool_freqs
 
 
-yf_den = spf.rfft(sig_den)
-# ---------------------------------------------------------- #
+def denoise(s, frs, filters):
+    sos = []
+    sig_ = np.copy(s)
+    
+    if filters[0]:
+        ord, wn = signal.buttord([24.5, 26.5], [24.9, 25.1], 2, 5, fs=frs)
+        sos.append(signal.butter(ord, wn, 'bs', fs=frs, output='sos'))
+    if filters[1]:
+        ord, wn = signal.buttord([49, 51], [49.9, 50.1], 5, 30, fs=frs)
+        sos.append(signal.butter(ord, wn, 'bs', fs=frs, output='sos'))
+    if filters[2]:
+        ord, wn = signal.buttord([74.5, 76.5], [74.9, 75.1], 2, 5, fs=frs)
+        sos.append(signal.butter(ord, wn, 'bs', fs=frs, output='sos'))
+    if filters[3]:
+        ord, wn = signal.buttord([99, 101], [99.95, 100.05], 3, 30, fs=frs)
+        sos.append(signal.butter(ord, wn, 'bs', fs=frs, output='sos'))
+    if filters[4]:
+        # 125 Hz works only for 250 Hz sample frequency!
+        if frs > 252:
+            raise ValueError('Sampling frequency is higher than 250 Hz. Unsupported file.')
+        ord, wn = signal.buttord(124.7, 124.8, 15, 25, fs=frs)
+        sos.append(signal.butter(ord, wn, 'lp', fs=frs, output='sos'))
+    
+    for f in sos:
+        sig_ = signal.sosfilt(f, sig_)
+        
+    yf_ = spf.rfft(sig_)
+    return sig_, yf_
 
-# -------------------Normalizing---------------------------- #
-up = np.max(sig_den)
-down = np.min(sig_den)
-b = (up + down) / (up - down)
-a = (1 - b) / down
-sig_den = a * sig_den + b
-# ---------------------------------------------------------- #
-
-# test = 0
-# if test:
-#     yf_filt[:] = 10
-#     sig_filt = spf.irfft(yf_filt)
-#     sig_den = signal.sosfilt(sos, sig_filt)
-#     yf_den = spf.rfft(sig_den)
-
-if PREVIEW:
-    fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])
-
-    axes[0, 0].plot(t, sig)
-    axes[1, 0].plot(xf, np.abs(yf))
-    axes[0, 1].plot(t, sig_filt)
-    axes[1, 1].plot(xf, np.abs(yf_filt))
-    axes[0, 2].plot(t, sig_den)
-    axes[1, 2].plot(xf, np.abs(yf_den))
+def normalize(s):
+    up = np.max(s)
+    down = np.min(s)
+    b = (up + down) / (up - down)
+    a = (1 - b) / down
+    return a * s + b
 
 
-    plt.show()
+if __name__ == '__main__':
+    names = ['40',
+             '300',
+             'IIS',
+             'big']
 
-# first element of array is sampling frequency
-if SAVE_RESULT:
-    sig_mod = np.concatenate([[fs], sig_den])
-    fname = path.join(dir_path, "data", "np_filt", names[fnum] + ' Channel_' + str(channel) + '_filt')
-    np.save(fname, sig_mod)
+    fnum = 2
+    channel = 6
+    
+    dir_path = path.dirname(path.realpath(__file__))
+    fname = path.join(dir_path, "data", "np_raw", names[fnum] + ' Channel ' + str(channel) + '       .npy')
 
-# Test filter's frequency response for de-noise
-# b, a = signal.butter(2, (49.8, 50.22), 'bandstop', analog=True)
-# b, a = signal.butter(ord, wn, 'bandstop', analog=True)
-# w, h = signal.freqs(b, a)
-# plt.semilogx(w, 20 * np_raw.log10(abs(h)))
-# plt.title('Butterworth filter frequency response')
-# plt.xlabel('Frequency [radians / second]')
-# plt.ylabel('Amplitude [dB]')
-# plt.margins(0, 0.1)
-# plt.grid(which='both', axis='both')
-# plt.axvline(100, color='green') # cutoff frequency
+    sig_mod = np.load(fname)
+    del fname
+    
+    fs = sig_mod[0]
+    sig = sig_mod[1:]
+    
+    samples_amount = len(sig)
+    t = np.linspace(0, samples_amount / fs, samples_amount)
+
+    sig_filt, yf_filt = cut_low(sig, fs)
+    bool_filters = analyze(sig_filt, fs)
+    sig_den, yf_den = denoise(sig_filt, fs, bool_filters)
+    sig_filt, yf_filt = cut_low(sig_den, fs)
+
+    if PREVIEW:
+        xf = spf.rfftfreq(samples_amount, 1 / fs)
+        yf = spf.rfft(sig)
+        
+        fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])
+
+        axes[0, 0].plot(t, sig)
+        axes[1, 0].plot(xf, np.abs(yf))
+        axes[0, 1].plot(t, sig_den)
+        axes[1, 1].plot(xf, np.abs(yf_den))
+        axes[0, 2].plot(t, sig_filt)
+        axes[1, 2].plot(xf, np.abs(yf_filt))
+
+        plt.show()
+
+    # first element of array is sampling frequency
+    if SAVE_RESULT:
+        sig_mod = np.concatenate([[fs], sig_den])
+        fname = path.join(dir_path, "data", "np_filt", names[fnum] + ' Channel_' + str(channel) + '_filt')
+        np.save(fname, sig_mod)
+    
