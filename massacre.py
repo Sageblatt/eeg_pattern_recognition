@@ -55,8 +55,10 @@ def normalization(spike):
 
 for sig_num in range(1, 7):
 
-    sig = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
-    t = np.linspace(0, len(sig) / 250.42798142, len(sig))
+    sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
+    fs = sig_[0]
+    sig = sig_[1:]
+    t = np.linspace(0, len(sig) / fs, len(sig))
 
     data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
     spikes = []
