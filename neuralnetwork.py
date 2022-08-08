@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 
 # get two datafiles' paths for training - with and without spikes
 def load_data(spikes_path, no_spikes_path=None):
-    data = pd.read_csv(spikes_path)
+    data = pd.read_csv(spikes_path, header=None)
     data['y'] = [1 for i in range(data.shape[0])]
     if no_spikes_path:
-        data2 = pd.read_csv(no_spikes_path)
+        data2 = pd.read_csv(no_spikes_path, header=None)
         data2['y'] = [0 for i in range(data2.shape[0])]
         data = pd.concat([data, data2], axis=0, join='inner', ignore_index=True)
 
@@ -57,8 +57,8 @@ def fit_data(data, normolize=False, randomize=False):
 
 # example of the simplest neural network
 def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2, epochs=10):
-    path = 'spikes.csv'
-    path2 = 'not_spikes.csv'
+    path = 'data/spikes.csv'
+    path2 = 'data/not_spikes.csv'
 
     data = load_data(path, path2)
     x_train, x_test, y_train, y_test = fit_data(data)
