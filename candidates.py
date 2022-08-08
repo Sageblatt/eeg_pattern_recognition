@@ -10,7 +10,7 @@ import scipy.fft as spf
 
 ADDITIONAL_DATA = False
 
-fname = 'data\\np_filt\\27-02-2015_19-49_reduced 300 sec Channel_2_filt.npy'
+fname = 'data\\np_filt\\edited Channel_6_filt.npy'
 fnum = 1
 sig_mod = np.load(fname)
 fs = sig_mod[0]
@@ -87,25 +87,29 @@ while i < len(high_peaks) - 2:
     else:
         i = i + 1
 
-'''
+
 print(spikes_num)
-for i in range(len(times)):
-    print(str(len(spikes[i])) + '  ' + str(times[i][0]))
-'''
 #------------------------------------------------------------------------------------
+'''
+for i in range(len(times)):         
+    print(str(len(spikes[i])) + '  ' + str(times[i][0]))     #latency and duration of spikes, printed
+'''
+
 duration = [len(spikes[i]) for i in range(len(spikes))]
 latency = [times[i][0] for i in range(len(times))]
 
-res = np.array([duration, latency])
-res = np.asanyarray(res)
-res1 = pd.DataFrame(res).transpose()
-res1.to_csv('spikes' + str(fnum) + '.csv', mode='a')
+res = {'duration': duration, 'latency': latency}
+res1 = pd.DataFrame(res)
+writer = pd.ExcelWriter('spikes' + str(fnum) + '.xlsx')
+res1.to_excel(writer)
+writer.save()
 
 '''
 for i in range(len(times)):
-    plt.plot(times[i], spikes[i])
+    plt.plot(times[i], spikes[i])                            #spikes on graphs
     plt.show()
-    
+
 for i in range(len(times)):
-    print(times[i][0], spikes[i][0])
+    print(times[i][0], spikes[i][0])                         #latency and first value of spikes, printed
+
 '''
