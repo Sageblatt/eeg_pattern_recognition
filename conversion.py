@@ -2,11 +2,12 @@ import numpy as np
 from EDFlib import edfreader
 import matplotlib.pyplot as plt
 from os import path
+from scipy import signal
 
 # This script converts .bdf files from ./data/raw folder to .npy
 # files in ./data/np_raw folder for further interactions
 
-def read_bdf(filename, show_output=False, extra_data=False, show_annotations=False):
+def read_bdf(filename, show_output=False, extra_data=False, show_annotations=False, downsample=False):
     hdl = edfreader.EDFreader(filename)
     
     n_signals = hdl.getNumSignals()
@@ -55,6 +56,14 @@ def read_bdf(filename, show_output=False, extra_data=False, show_annotations=Fal
     
     hdl.close()
     
+    
+    if downsample:
+        for i in range(len(signals)):
+            if not np.isclose(freqs[i], 250):
+                time = len(signals[i]) / freqs[i]
+                signals[i] = signal.resample(signals[i], int(time*250))
+                freqs[i] = int(time*250)/time
+    
     return signals, freqs, channel_names
 
 
@@ -81,7 +90,7 @@ if __name__ == '__main__':
     dir_path = path.dirname(path.realpath(__file__))
     fname = path.join(dir_path, "data", "raw", names[fnum] + '.bdf')
     
-    signals, freqs, channel_names = read_bdf(fname, True, ADDITIONAL_DATA, False)
+    signals, freqs, channel_names = read_bdf(fname, True, ADDITIONAL_DATA, False, True)
     
     if not SAVE_ALL:
         print("Select signal (enter value from 0 to %d):" % (len(signals) - 1))
