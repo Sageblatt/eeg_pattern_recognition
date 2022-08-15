@@ -14,7 +14,7 @@ SAVE_RESULT = 0
 PREVIEW = 1
 
 def cut_low(s, fs):  
-    # Cuts every frequency below freq
+    # Cuts every frequency below freq, cuts signal if it can't be floor divided by 10
     def high_pass(signal, freq, sample_frequency):
         m = np.size(signal)
         x_f = spf.rfftfreq(m, 1 / sample_frequency)
@@ -32,6 +32,8 @@ def cut_low(s, fs):
     #     piece = sample_freq[n] * 2
     
     piece = int(10)
+    while len(s) % piece != 0:
+        s = s[:-1]
     cut_sig = np.array_split(s, len(s) / piece)
 
     for i in range(len(cut_sig)):
@@ -43,7 +45,7 @@ def cut_low(s, fs):
 
 
 def analyze(s, fs):
-    xf = spf.rfftfreq(samples_amount, 1 / fs)
+    xf = spf.rfftfreq(len(s), 1 / fs)
     yf = np.abs(spf.rfft(s))
     
     freqs = [25, 50, 75, 100, 125]
@@ -112,8 +114,6 @@ if __name__ == '__main__':
     fs = sig_mod[0]
     sig = sig_mod[1:]
     
-    samples_amount = len(sig)
-    t = np.linspace(0, samples_amount / fs, samples_amount)
 
     sig_filt, yf_filt = cut_low(sig, fs)
     bool_filters = analyze(sig_filt, fs)
@@ -121,17 +121,25 @@ if __name__ == '__main__':
     sig_filt, yf_filt = cut_low(sig_den, fs)
 
     if PREVIEW:
+        samples_amount = len(sig)
+        t = np.linspace(0, samples_amount / fs, samples_amount)
         xf = spf.rfftfreq(samples_amount, 1 / fs)
         yf = spf.rfft(sig)
+        
+        t1 = np.linspace(0, len(sig_den) / fs, len(sig_den))
+        xf1 = spf.rfftfreq(len(sig_den), 1 / fs)
+        
+        t2 = np.linspace(0, len(sig_filt) / fs, len(sig_filt))
+        xf2 = spf.rfftfreq(len(sig_filt), 1 / fs)
         
         fig, axes = plt.subplots(ncols=3, nrows=2, gridspec_kw={"wspace": 0.2, "hspace": 0.5}, figsize=[14.0, 7.0])
 
         axes[0, 0].plot(t, sig)
         axes[1, 0].plot(xf, np.abs(yf))
-        axes[0, 1].plot(t, sig_den)
-        axes[1, 1].plot(xf, np.abs(yf_den))
-        axes[0, 2].plot(t, sig_filt)
-        axes[1, 2].plot(xf, np.abs(yf_filt))
+        axes[0, 1].plot(t1, sig_den)
+        axes[1, 1].plot(xf1, np.abs(yf_den))
+        axes[0, 2].plot(t2, sig_filt)
+        axes[1, 2].plot(xf2, np.abs(yf_filt))
 
         plt.show()
 
