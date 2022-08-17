@@ -7,12 +7,6 @@ from os import path
 # This script filters low frequencies from raw files,
 # removes noises and normalizes data to (-1, 1) range
 
-# save filtered signal as .npy to ./data/np_filt folder
-SAVE_RESULT = 0
-
-# Enables matplotlib plot of signal
-PREVIEW = 1
-
 def cut_low(s, fs):  
     # Cuts every frequency below freq, cuts signal if it can't be floor divided by 10
     def high_pass(signal, freq, sample_frequency):
@@ -97,6 +91,12 @@ def normalize(s):
 
 
 if __name__ == '__main__':
+    # save filtered signal as .npy to ./data/np_filt folder
+    SAVE_RESULT = 0
+
+    # Enables matplotlib plot of signal
+    PREVIEW = 1
+    
     names = ['40',
              '300',
              'IIS',
