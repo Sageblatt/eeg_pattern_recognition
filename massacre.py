@@ -8,16 +8,17 @@ SPIKE_IN_THE_MIDDLE    = True
 SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = False
 
-def loading_data(sig_num):
+def loading_data(sig_num, data):
 
     sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
     fs = sig_[0]
     sig = sig_[1:]
     t = np.linspace(0, len(sig) / fs, len(sig))
 
-    data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
+    #data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
+    data = pd.DataFrame(data)
     spikes = []
-    spikes.append(data.loc[:, "Latency_corrected (sec)"].to_numpy())
+    spikes.append(data.loc[:, "latency"].to_numpy())
     spikes.append(data.loc[:, "duration"].to_numpy())
     spikes = np.array(spikes)
     
@@ -185,5 +186,5 @@ def main():
         cutting_not_spikes(starts, ends, sig, t)
         
  
-if __name__ == '__main__':
-    main() 
+#if __name__ == '__main__':
+#    main() 
