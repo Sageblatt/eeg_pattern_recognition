@@ -4,23 +4,29 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-
-# Deletes previously made files 
-# to protect data from repeating
-DELETE_PREV_FILES = False
-
-if DELETE_PREV_FILES:
-    try:
-        os.remove('data/not_spikes.csv')
-        os.remove('data/spikes.csv')
-    except FileNotFoundError:
-        print('Files not found, nothing to remove')
-
 SPIKE_IN_THE_MIDDLE    = True
 SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = False
 
-def spike_in_the_middle():
+def loading_data(sig_num):
+
+    sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
+    fs = sig_[0]
+    sig = sig_[1:]
+    t = np.linspace(0, len(sig) / fs, len(sig))
+
+    data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
+    spikes = []
+    spikes.append(data.loc[:, "Latency_corrected (sec)"].to_numpy())
+    spikes.append(data.loc[:, "duration"].to_numpy())
+    spikes = np.array(spikes)
+    
+    return([sig, spikes, t])
+
+def saving_data(fname, res):
+    pd.DataFrame(res).to_csv(fname, mode='a', index = False, header = False)
+
+def spike_in_the_middle(spikes, sample_len, i, t):
         
     spike_len = floor(spikes[1][i])
     spike_start = (np.abs(t - spikes[0][i])).argmin()
@@ -33,7 +39,7 @@ def spike_in_the_middle():
         
     return([start, end])
     
-def spike_in_the_end():
+def spike_in_the_end(spikes, sample_len, i, t):
     
     spike_len = floor(spikes[1][i])
     spike_start = (np.abs(t - spikes[0][i])).argmin()
@@ -46,7 +52,7 @@ def spike_in_the_end():
 
     return([start, end])
     
-def spike_in_the_beginning():
+def spike_in_the_beginning(spikes, sample_len, i, t):
 
     spike_len = floor(spikes[1][i])
     start = (np.abs(t - spikes[0][i])).argmin()
@@ -66,20 +72,14 @@ def normalization(spike):
     spike = a * np.array(spike) + b
     return(spike)
 
-for sig_num in range(1, 7):
-    if sig_num == 5:
-        continue
 
-    sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
-    fs = sig_[0]
-    sig = sig_[1:]
-    t = np.linspace(0, len(sig) / fs, len(sig))
+def plot(data, time):
 
-    data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
-    spikes = []
-    spikes.append(data.loc[:, "Latency_corrected (sec)"].to_numpy())
-    spikes.append(data.loc[:, "duration"].to_numpy())
-    spikes = np.array(spikes)
+    plt.plot(time, data, figure=plt.figure(figsize=(10.0, 6.0)))
+    plt.show()
+
+
+def cutting_spikes(sig, spikes, t):
 
     sample_len = floor(np.max(spikes[1]))
 
@@ -94,13 +94,13 @@ for sig_num in range(1, 7):
         time = []
         
         if (SPIKE_IN_THE_MIDDLE):
-            data = spike_in_the_middle()
+            data = spike_in_the_middle(spikes, sample_len, i, t)
             start, end = data[0], data[1]
         if (SPIKE_IN_THE_END):
-            data = spike_in_the_end()
+            data = spike_in_the_end(spikes, sample_len, i, t)
             start, end = data[0], data[1]
         if (SPIKE_IN_THE_BEGINNING):   
-            data = spike_in_the_beginning() 
+            data = spike_in_the_beginning(spikes, sample_len, i, t) 
             start, end = data[0], data[1]
             
         starts.append(start)
@@ -110,23 +110,27 @@ for sig_num in range(1, 7):
             spike.append(sig[n])
             time.append(t[n])
         
-        #plt.plot(time, spike, figure=plt.figure(figsize=(10.0, 6.0)))
-        #plt.show()
+        #plot(spike, time)
 
         spike = normalization(spike)
         
-        #plt.plot(time, spike, figure=plt.figure(figsize=(10.0, 6.0)))
-        #plt.show()
+        
+        #plot(spike, time)
         
         res.append(spike)
 
     res = np.array(res, dtype=object)
     res = np.asanyarray(res)
 
-    pd.DataFrame(res).to_csv('data/spikes.csv', mode='a', index = False, header = False)
+    saving_data('data/spikes.csv', res)
 
     ends = [0] + ends
+    
+    return(starts, ends)
 
+def cutting_not_spikes(starts, ends, sig, t):
+
+    not_spikes = []
     for i in range(len(starts)-1):
        if (starts[i] - ends[i]) >= 50:
             p = 0
@@ -137,8 +141,7 @@ for sig_num in range(1, 7):
                     not_spike.append(sig[k])
                     time.append(t[k])
                 
-                #plt.plot(time, not_spike, figure=plt.figure(figsize=(10.0, 6.0)))
-                #plt.show()
+                #plot(not_spike, time)
                    
                 not_spike = normalization(not_spike)
                 
@@ -147,4 +150,40 @@ for sig_num in range(1, 7):
                 
     not_spikes = np.array(not_spikes, dtype=object)
     not_spikes = np.asanyarray(not_spikes)
-    pd.DataFrame(not_spikes).to_csv('data/not_spikes.csv', mode='a', index = False, header = False)
+    
+    saving_data('data/not_spikes.csv', not_spikes)
+
+
+def main():
+    
+    # Deletes previously made files 
+    # to protect data from repeating
+    
+    DELETE_PREV_FILES = False
+
+    if DELETE_PREV_FILES:
+        try:
+            os.remove('data/not_spikes.csv')
+            os.remove('data/spikes.csv')
+        except FileNotFoundError:
+            print('Files not found, nothing to remove')
+            
+    
+    for sig_num in range(1, 7):
+        if sig_num == 5:
+            continue
+            
+        data   = loading_data(sig_num)
+        sig    = data[0]
+        spikes = data[1]
+        t      = data[2]
+        
+        data   = cutting_spikes(sig, spikes, t)
+        starts = data[0] 
+        ends   = data[1]
+        
+        cutting_not_spikes(starts, ends, sig, t)
+        
+ 
+if __name__ == '__main__':
+    main() 
