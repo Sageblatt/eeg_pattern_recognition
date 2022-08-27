@@ -9,10 +9,10 @@ SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = False
 
 
-def loading_data(sig_num, data):
+def loading_data(sig_num, data, sig):
 
     """
-        Loads signal and information about spikes
+        Loads information about spikes
         
         Parameters:
             sig_num (int): number of signal in bdf
@@ -22,12 +22,14 @@ def loading_data(sig_num, data):
             spikes (np.array): latency and duration of spikes
     """
     
-    sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
-    fs = sig_[0]
-    sig = sig_[1:]
+    #sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
+    #fs = sig_[0]
+    #sig = sig_[1:]
+    
     t = np.linspace(0, len(sig) / fs, len(sig))
 
     #data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
+    
     data = pd.DataFrame(data)
     spikes = []
     spikes.append(data.loc[:, "latency"].to_numpy())
@@ -263,7 +265,7 @@ def cutting_not_spikes(starts, ends, sig, t):
 def main():
     
     # Deletes previously made files 
-    # to protect data from repeatingres1 = pd.DataFrame(candidates(sig))
+    # to protect data from repeating
     
     DELETE_PREV_FILES = False
 
@@ -278,8 +280,11 @@ def main():
     for sig_num in range(1, 7):
         if sig_num == 5:
             continue
-            
-        data   = loading_data(sig_num)
+        
+        # in final main file signal will be loaded before 
+        # using 'candidates'
+    
+        data   = loading_data(sig_num, candidates(sig), sig)
         sig    = data[0]
         spikes = data[1]
         t      = data[2]
