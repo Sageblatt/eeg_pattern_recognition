@@ -294,7 +294,6 @@ def main():
         ends   = data[1]
         
         cutting_not_spikes(starts, ends, sig, t)
-        
- 
+         
 #if __name__ == '__main__':
 #    main() 
