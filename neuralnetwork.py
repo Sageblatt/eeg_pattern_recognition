@@ -122,7 +122,9 @@ def model_predict(path_to_data):
                               Dense(40, activation='relu'),
                               Dense(1, activation='sigmoid')
                               ])
-
+    threshold = 0.5
+    metrics = [Recall(name='recall', thresholds=[threshold])]
+    
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=metrics
