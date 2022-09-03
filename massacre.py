@@ -9,9 +9,9 @@ SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = False
 
 
-def loading_data(sig_num, data, sig):
+def loading_data(sig, fs, data):
 
-    """
+    """ NON VALID, DOCS NEED TO BE REWRITTEN
         Loads information about spikes
         
         Parameters:
@@ -262,38 +262,36 @@ def cutting_not_spikes(starts, ends, sig, t):
     saving_data('data/not_spikes.csv', not_spikes)
 
 
-def main():
+# TODO: rework main to use this script standalone as it was in earlier versions
+# if __name__ == '__main__':   
+#     # Deletes previously made files 
+#     # to protect data from repeating
     
-    # Deletes previously made files 
-    # to protect data from repeating
-    
-    DELETE_PREV_FILES = False
+#     DELETE_PREV_FILES = False
 
-    if DELETE_PREV_FILES:
-        try:
-            os.remove('data/not_spikes.csv')
-            os.remove('data/spikes.csv')
-        except FileNotFoundError:
-            print('Files not found, nothing to remove')
+#     if DELETE_PREV_FILES:
+#         try:
+#             os.remove('data/not_spikes.csv')
+#             os.remove('data/spikes.csv')
+#         except FileNotFoundError:
+#             print('Files not found, nothing to remove')
             
     
-    for sig_num in range(1, 7):
-        if sig_num == 5:
-            continue
+#     for sig_num in range(1, 7):
+#         if sig_num == 5:
+#             continue
         
-        # in final main file signal will be loaded before 
-        # using 'candidates'
+#         # in final main file signal will be loaded before 
+#         # using 'candidates'
     
-        data   = loading_data(sig_num, candidates(sig), sig)
-        sig    = data[0]
-        spikes = data[1]
-        t      = data[2]
+#         data   = loading_data(sig_num, candidates(sig), sig)
+#         sig    = data[0]
+#         spikes = data[1]
+#         t      = data[2]
         
-        data   = cutting_spikes(sig, spikes, t)
-        starts = data[0] 
-        ends   = data[1]
+#         data   = cutting_spikes(sig, spikes, t)
+#         starts = data[0] 
+#         ends   = data[1]
         
-        cutting_not_spikes(starts, ends, sig, t)
-         
-#if __name__ == '__main__':
-#    main() 
+#         cutting_not_spikes(starts, ends, sig, t)
+
