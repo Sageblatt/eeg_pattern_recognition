@@ -10,6 +10,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 
 # get two datafiles' paths for training - with and without spikes
@@ -59,7 +60,8 @@ def fit_data(data, normolize=False, randomize=False):
 
 # example of the simplest neural network
 def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2, epochs=10,
-                   not_spike_proportion=1.0, first_dense_neurons=40, showfig=True, verbose='auto'):
+                   not_spike_proportion=1.0, first_dense_neurons=40, showfig=True,
+                   verbose='auto', save=False):
     path = 'data/spikes_beginning.csv'
     path2 = 'data/not_spikes.csv'
 
@@ -101,7 +103,38 @@ def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2,
 
     y_train_pred = model.predict(x_train, verbose=verbose)
 
+    #save model
+    if save:
+        model.keras.save('model')
+
     return y_pred, y_test, y_train_pred, y_train, x_test
+
+
+# load model
+def model_predict(path_to_data):
+    path = 'data/spikes_beginning.csv'
+    path2 = 'data/not_spikes.csv'
+
+    data = load_data(path, path2)
+    x_train, x_test, y_train, y_test = fit_data(data)
+    signal_size = x_train.shape[1]
+    model = keras.Sequential([Flatten(input_shape=(signal_size, 1)),
+                              Dense(40, activation='relu'),
+                              Dense(1, activation='sigmoid')
+                              ])
+
+    model.compile(optimizer='adam',
+                  loss='binary_crossentropy',
+                  metrics=metrics
+                  )
+
+    model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0)
+
+    data = pd.read_csv(path_to_data, header=None)
+    data = np.array([[element[i] for i in range(len(element)) if i >= 1] for element in data.to_numpy()])
+
+    y_pred = model.predict(data)
+    return y_pred
 
 
 ####################### DATA VISUALISATION #######################
@@ -242,18 +275,11 @@ def test_hyper_parameters(hyperparameters, STEPS_FOR_AVERAGING = 10):
 
 if __name__ == '__main__':
     threshold = 0.5
-    metrics = [TruePositives(name='tp'),
-               FalseNegatives(name='fn'),
-               Recall(name='recall', thresholds=[threshold]),
-               Accuracy(name='accuracy')]
 
-    y_pred, y_test, y_train_pred, y_train, x_test = simple_network(metrics, batch_size=32,
-                                                                   validation_split=0.2, epochs=50,
-                                                                   showfig=True, not_spike_proportion=0.05)
-    y_pred_cat = np.copy(y_pred)
-    y_pred_cat[y_pred_cat >= threshold] = 1
-    y_pred_cat[y_pred_cat < threshold] = 0
-    plot_graphics(y_test, y_pred_cat)
+    metrics = [Recall(name='recall', thresholds=[threshold])]
+
+    print(model_predict('data/spikes_beginning.csv'))
+
 
 
 
