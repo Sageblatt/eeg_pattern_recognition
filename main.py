@@ -36,18 +36,22 @@ if __name__ == '__main__':
     dct = []
     spikes = []
     predict = []
+    dct = []
     for s in range(len(signals)):
         sig_, _ = f.cut_low(signals[s], freqs[s])
         bool_filters = f.analyze(sig_, freqs[s])
         sig_, _ = f.denoise(sig_, freqs[s], bool_filters)
         sig_, _ = f.cut_low(sig_, freqs[s])
         filtered.append(sig_)
-        dct = ca.candidates(filtered[s], freqs[s])
-        cut = m.loading_data(filtered[s], freqs[s], dct)
+        dct.append(ca.candidates(filtered[s], freqs[s]))
+        cut = m.loading_data(filtered[s], freqs[s], dct[s])
         spikes.append(m.cutting_spikes(*cut, f'data/main{s}.csv',))
-        predict.append(nn.model_predict(f'data/main{s}.csv'))
+        predict.append(np.squeeze(nn.model_predict(f'data/main{s}.csv')))
+        predict[s][predict[s] < 0.5] = 0
+        predict[s][predict[s] >= 0.5] = 1
     
-    print(predict)
+    print(dct[0]['latency'][predict[0] == 1])
+    print(dct[1]['latency'][predict[1] == 1])
     
     
     plt.plot(predict[0])

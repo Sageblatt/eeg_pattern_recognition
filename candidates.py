@@ -58,8 +58,8 @@ def candidates(sig, freq):
         else:
             i = i + 1
     
-    duration = [len(spikes[i]) for i in range(len(spikes))]
-    latency = [times[i][0] for i in range(len(times))]
+    duration = np.array([len(spikes[i]) for i in range(len(spikes))])
+    latency = np.array([times[i][0] for i in range(len(times))])
 
     res = {'duration': duration, 'latency': latency}
     return res
