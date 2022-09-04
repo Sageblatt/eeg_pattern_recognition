@@ -4,22 +4,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-SPIKE_IN_THE_MIDDLE    = True
+SPIKE_IN_THE_MIDDLE    = False
 SPIKE_IN_THE_END       = False
-SPIKE_IN_THE_BEGINNING = False
+SPIKE_IN_THE_BEGINNING = True
 
 
 def loading_data(sig, fs, data):
 
-    """ NON VALID, DOCS NEED TO BE REWRITTEN
+    """ 
         Loads information about spikes
         
         Parameters:
-            sig_num (int): number of signal in bdf
-            data (dict)  : latency and duration of spikes
+            sig (np.array): signal
+            fs (float)    : sampling frequency
+            data (dict)   : latency and duration of spikes
         Return:
             sig (np.array)   : signal
             spikes (np.array): latency and duration of spikes
+            t (np.array)     : time array
     """
     
     #sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
@@ -167,7 +169,7 @@ def plot(data, time):
     plt.show()
 
 
-def cutting_spikes(sig, spikes, t):
+def cutting_spikes(sig, spikes, t, fname):
 
     """
         Cuts signal to samples with spikes
@@ -178,7 +180,7 @@ def cutting_spikes(sig, spikes, t):
             t (np.array)   : time
     """
 
-    sample_len = floor(np.max(spikes[1]))
+    sample_len = 51
 
     res = []
     not_spikes = []
@@ -219,14 +221,14 @@ def cutting_spikes(sig, spikes, t):
     res = np.array(res, dtype=object)
     res = np.asanyarray(res)
 
-    saving_data('data/spikes.csv', res)
+    saving_data(fname, res)
 
     ends = [0] + ends
     
     return(starts, ends)
 
 
-def cutting_not_spikes(starts, ends, sig, t):
+def cutting_not_spikes(starts, ends, sig, t, fname):
 
     """
         Cuts signal to samples without spikes
@@ -236,6 +238,7 @@ def cutting_not_spikes(starts, ends, sig, t):
             ends (list)   : ends of spikes (time)
             sig (np.array): signal
             t (np.array)  : time
+            fname (str)   : name of file to save
     """
 
     not_spikes = []
@@ -259,7 +262,7 @@ def cutting_not_spikes(starts, ends, sig, t):
     not_spikes = np.array(not_spikes, dtype=object)
     not_spikes = np.asanyarray(not_spikes)
     
-    saving_data('data/not_spikes.csv', not_spikes)
+    saving_data(fname, not_spikes)
 
 
 # TODO: rework main to use this script standalone as it was in earlier versions
