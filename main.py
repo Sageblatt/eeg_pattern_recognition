@@ -45,10 +45,9 @@ if __name__ == '__main__':
         dct = ca.candidates(filtered[s], freqs[s])
         cut = m.loading_data(filtered[s], freqs[s], dct)
         spikes.append(m.cutting_spikes(*cut, f'data/main{s}.csv',))
-        #m.saving_data(f'data/main{s}.csv', spikes[s])
         predict.append(nn.model_predict(f'data/main{s}.csv'))
     
-    print(predict[0])
+    print(predict)
     
     
-    # plt.plot(filtered[0])
+    plt.plot(predict[0])

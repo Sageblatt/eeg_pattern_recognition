@@ -112,7 +112,7 @@ def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2,
 
 # load model
 def model_predict(path_to_data):
-    path = 'data/spikes_beginning.csv'
+    path = 'data/spikes.csv'
     path2 = 'data/not_spikes.csv'
 
     data = load_data(path, path2)
