@@ -201,7 +201,9 @@ def cutting_spikes(sig, spikes, t, fname):
         if (SPIKE_IN_THE_BEGINNING):   
             data = spike_in_the_beginning(spikes, sample_len, i, t) 
             start, end = data[0], data[1]
-            
+        if (end >= len(sig)):
+            continue        
+    
         starts.append(start)
         ends.append(end) 
            

@@ -46,7 +46,7 @@ if __name__ == '__main__':
         dct.append(ca.candidates(filtered[s], freqs[s]))
         cut = m.loading_data(filtered[s], freqs[s], dct[s])
         spikes.append(m.cutting_spikes(*cut, f'data/main{s}.csv',))
-        predict.append(np.squeeze(nn.model_predict(f'data/main{s}.csv')))
+        """predict.append(np.squeeze(nn.model_predict(f'data/main{s}.csv')))
         predict[s][predict[s] < 0.5] = 0
         predict[s][predict[s] >= 0.5] = 1
     
@@ -54,4 +54,4 @@ if __name__ == '__main__':
     print(dct[1]['latency'][predict[1] == 1])
     
     
-    plt.plot(predict[0])
+    plt.plot(predict[0])"""
