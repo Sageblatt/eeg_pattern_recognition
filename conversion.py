@@ -27,7 +27,7 @@ def read_bdf(filename, show_output=False, extra_data=False, show_annotations=Fal
             print("\nSig. %d: %s" % (i, hdl.getSignalLabel(i)))
         
         name = hdl.getSignalLabel(i)
-        if name.find('Accel') != -1 and ignore_accel:
+        if (name.find('Accel') != -1 or name.find('Gyro') != -1 or name.find('Qual') != -1) and ignore_accel:
             accel.append(i)
         if accel.count(i) == 0:
             channel_names.append(name)

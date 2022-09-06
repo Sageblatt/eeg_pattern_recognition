@@ -45,13 +45,25 @@ if __name__ == '__main__':
         filtered.append(sig_)
         dct.append(ca.candidates(filtered[s], freqs[s]))
         cut = m.loading_data(filtered[s], freqs[s], dct[s])
-        spikes.append(m.cutting_spikes(*cut, f'data/main{s}.csv',))
-        """predict.append(np.squeeze(nn.model_predict(f'data/main{s}.csv')))
-        predict[s][predict[s] < 0.5] = 0
-        predict[s][predict[s] >= 0.5] = 1
+        spikes.append(m.cutting_spikes(*cut, f'data/main{s}.csv'))
+        predict.append(np.squeeze(nn.model_predict(f'data/main{s}.csv')))
     
-    print(dct[0]['latency'][predict[0] == 1])
-    print(dct[1]['latency'][predict[1] == 1])
+    thld = 0.3
+    res = dct[0]['latency'][predict[0] >= thld]
+    for s in range(1, len(signals)):
+        res = np.concatenate((res, dct[s]['latency'][predict[s] >= thld]))
+        
+    res.sort()
     
+    tol = 50 * 10**-3 # min difference between different spikes
+    detected = []
     
-    plt.plot(predict[0])"""
+    if len(res) > 1:
+        detected.append(res[0])
+    for i in range(1, len(res)):
+        if res[i] > res[i - 1] + tol:
+            detected.append(res[i])
+    
+    print(detected)
+    
+    # plt.plot(predict[0])
