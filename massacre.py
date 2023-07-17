@@ -1,3 +1,4 @@
+from edflib import edfreader
 from math import floor
 import numpy as np
 import pandas as pd
@@ -8,6 +9,27 @@ SPIKE_IN_THE_MIDDLE    = False
 SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = True
 
+def read_from_bdf(filename, channel):
+
+    reader = edfreader.EdfReader(filename)
+    ann = reader.read_annotations()
+    sig = reader.get_signal(chn = channel)
+    
+    sig      = np.array(sig)
+
+    ann = [a for a in ann if a[2] == '']
+    latency  = np.array(np.array(ann)[:, 0])
+    duration = np.array(np.array(ann)[:, 1])
+    
+    latency  = np.array([float(i) for i in latency])
+    duration = np.array([float(i) for i in duration])
+    
+    fs = reader.samplefrequency(channel)
+    t = np.linspace(0, len(sig) / fs, len(sig))
+    
+    spikes = [latency, duration]
+    
+    return ([sig, spikes, t])
 
 def loading_data(sig, fs, data):
 
@@ -266,13 +288,15 @@ def cutting_not_spikes(starts, ends, sig, t, fname):
     
     saving_data(fname, not_spikes)
 
+if __name__ == '__main__':
+    read_from_bdf("24h_spikes.bdf", 3)
 
 # TODO: rework main to use this script standalone as it was in earlier versions
 # if __name__ == '__main__':   
 #     # Deletes previously made files 
 #     # to protect data from repeating
     
-#     DELETE_PREV_FILES = False
+#     DELETE_PREV_FILES = True
 
 #     if DELETE_PREV_FILES:
 #         try:
