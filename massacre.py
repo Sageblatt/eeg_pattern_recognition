@@ -147,14 +147,15 @@ def spike_in_the_beginning(spikes, sample_len, i, t):
             end   (int) : end of spike (time)
     """
 
-    spike_len = floor(spikes[1][i])
-    start = (np.abs(t - spikes[0][i])).argmin()
-    end = start + spike_len + floor((51 - spike_len))
+    spike_len = np.int32(np.floor(spikes[1][i]))
+    start = np.searchsorted(t, spikes[0][i])
+
+    end = start + spike_len + floor((sample_len - spike_len))
         
     if (end-start) != sample_len:
         end += sample_len - (end - start)
         
-    return([start, end])
+    return start, end
     
 
 def normalization(spike):
@@ -173,8 +174,8 @@ def normalization(spike):
     down = np.min(spike)
     b = (up + down) / (up - down)
     a = (1 - b) / down
-    spike = a * np.array(spike) + b
-    return(spike)
+    spike = a * spike + b
+    return spike
 
 
 def plot(data, time):
