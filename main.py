@@ -5,7 +5,6 @@ import candidates as ca
 import massacre as m
 import neuralnetwork as nn
 import os
-import pandas as pd
 import tkinter as tk
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename
@@ -38,10 +37,10 @@ if __name__ == '__main__':
     predict = []
     dct = []
     for s in range(len(signals)):
-        sig_, _ = f.cut_low(signals[s], freqs[s])
+        sig_ = f.cut_low_threaded(signals[s], freqs[s])
         bool_filters = f.analyze(sig_, freqs[s])
         sig_, _ = f.denoise(sig_, freqs[s], bool_filters)
-        sig_, _ = f.cut_low(sig_, freqs[s])
+        sig_ = f.cut_low_threaded(sig_, freqs[s])
         filtered.append(sig_)
         dct.append(ca.candidates(filtered[s], freqs[s]))
         cut = m.loading_data(filtered[s], freqs[s], dct[s])

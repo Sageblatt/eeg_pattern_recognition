@@ -3,10 +3,12 @@ import matplotlib.pyplot as plt
 import scipy.fft as spf
 from scipy import signal
 from os import path
+from multiprocessing import Pool, cpu_count
+import itertools
+
 
 # This script filters low frequencies from raw files,
 # removes noises and normalizes data to (-1, 1) range
-
 def cut_low(s, fs):  
     # Cuts every frequency below freq, cuts signal if it can't be floor divided by 10
     def high_pass(signal, freq, sample_frequency):
@@ -30,12 +32,36 @@ def cut_low(s, fs):
         s = s[:-1]
     cut_sig = np.array_split(s, len(s) / piece)
 
+
     for i in range(len(cut_sig)):
         cut_sig[i], _ = high_pass(cut_sig[i], 1, fs)
 
     sig_filt = np.concatenate(cut_sig)
     yf_filt = spf.rfft(sig_filt)
     return sig_filt, yf_filt
+
+
+def high_pass_th(signal, freq, sample_frequency):
+    m = np.size(signal)
+    x_f = spf.rfftfreq(m, 1 / sample_frequency)
+    y_f = spf.rfft(signal)
+    y_f[(x_f <= freq)] = 0
+    return spf.irfft(y_f)
+
+def cut_low_threaded(s, fs):
+    piece = int(10)
+    while len(s) % piece != 0:
+        s = s[:-1]
+
+    cut_sig = np.array_split(s, len(s) / piece)
+
+    pool = Pool(cpu_count())
+    cut_sig = pool.starmap(high_pass_th, zip(cut_sig, itertools.repeat(1), itertools.repeat(fs)))
+    pool.close()
+    pool.join()
+
+    sig_filt = np.concatenate(cut_sig)
+    return sig_filt
 
 
 def analyze(s, fs):
