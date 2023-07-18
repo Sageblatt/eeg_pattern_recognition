@@ -1,5 +1,6 @@
 from tensorflow import keras
-from tensorflow.python.keras.layers import Dense, Flatten
+from keras.layers import Dense, Flatten
+#from tensorflow.python.keras.layers import Dense, Flatten
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import recall_score, precision_score, accuracy_score, confusion_matrix
@@ -61,8 +62,8 @@ def fit_data(data, normolize=False, randomize=False):
 # example of the simplest neural network
 def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2, epochs=10,
                    not_spike_proportion=1.0, first_dense_neurons=40, showfig=True,
-                   verbose='auto', save=False):
-    path = 'data/spikes_beginning.csv'
+                   verbose='auto', save=True):
+    path = 'data/spikes.csv'
     path2 = 'data/not_spikes.csv'
 
     data = load_data(path, path2, not_spike_proportion=not_spike_proportion)
@@ -105,7 +106,7 @@ def simple_network(metrics, save_fig=False, batch_size=16, validation_split=0.2,
 
     #save model
     if save:
-        model.keras.save('model')
+        model.save('model.h5')
 
     return y_pred, y_test, y_train_pred, y_train, x_test
 
@@ -132,10 +133,10 @@ def model_predict(path_to_data):
 
     model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=0)
 
-    data = pd.read_csv(path_to_data, header=None)
-    data = np.array([[element[i] for i in range(len(element)) if i >= 1] for element in data.to_numpy()])
+    #data = pd.read_csv(path_to_data, header=None)
+    #data = np.array([[element[i] for i in range(len(element)) if i >= 1] for element in data.to_numpy()])
 
-    y_pred = model.predict(data)
+    y_pred = model.predict(x_test)
     return y_pred
 
 
@@ -279,8 +280,12 @@ if __name__ == '__main__':
     threshold = 0.5
 
     metrics = [Recall(name='recall', thresholds=[threshold])]
-
-    print(model_predict('data/spikes_beginning.csv'))
+    y_pred, y_test, y_train_pred, y_train, x_test = simple_network(metrics)
+    print('done!')
+    model_loaded = keras.models.load_model('model.h5')
+    print('and this')
+    print(model_loaded.predict(x_test))
+    #print(model_predict('data/spikes_beginning.csv'))
 
 
 
