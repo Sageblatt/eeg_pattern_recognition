@@ -9,319 +9,304 @@ SPIKE_IN_THE_MIDDLE    = False
 SPIKE_IN_THE_END       = False
 SPIKE_IN_THE_BEGINNING = True
 
-def read_from_bdf(filename, channel):
+# TODO: - fix spike_in_the_middle
+#       - fix spike_in_the_end
 
-    reader = edfreader.EdfReader(filename)
-    ann = reader.read_annotations()
-    sig = reader.get_signal(chn = channel)
-    
-    sig      = np.array(sig)
 
-    ann = [a for a in ann if a[2] == '']
-    latency  = np.array(np.array(ann)[:, 0])
-    duration = np.array(np.array(ann)[:, 1])
-    
-    latency  = np.array([float(i) for i in latency])
-    duration = np.array([float(i) for i in duration])
-    
-    fs = reader.samplefrequency(channel)
-    t = np.linspace(0, len(sig) / fs, len(sig))
-    
-    spikes = [latency, duration]
-    
-    return ([sig, spikes, t])
 
-def loading_data(sig, fs, data):
-
-    """ 
-        Loads information about spikes
+class cutter():
+    
+    def __init__(self):
         
-        Parameters:
-            sig (np.array): signal
-            fs (float)    : sampling frequency
-            data (dict)   : latency and duration of spikes
-        Return:
-            sig (np.array)   : signal
-            spikes (np.array): latency and duration of spikes
-            t (np.array)     : time array
-    """
-    
-    #sig_ = np.load('data/np_filt/IIS Channel_' + str(sig_num) + '_filt.npy')
-    #fs = sig_[0]
-    #sig = sig_[1:]
-    
-    t = np.linspace(0, len(sig) / fs, len(sig))
+        self.sig = np.array([])
+        self.latency = np.array([])
+        self.duration = np.array([])
+        self.fs = 0
+        self.t = np.array([])
+        self.spikes = []
+        self.starts = np.array([])
+        self.ends = np.array([])
 
-    #data = pd.read_excel('data/Spikes.xlsx', index_col = 0)
-    
-    data = pd.DataFrame(data)
-    spikes = []
-    spikes.append(data.loc[:, "latency"].to_numpy())
-    spikes.append(data.loc[:, "duration"].to_numpy())
-    spikes = np.array(spikes)
-    
-    return([sig, spikes, t])
+    def read_from_bdf(self, filename, channel):
 
-
-def saving_data(fname, res):
-
-    """
-        Saves data to csv
+        reader = edfreader.EdfReader(filename)
+        ann = reader.read_annotations()
+        sig = reader.get_signal(chn = channel)
         
-        Parameters:
-            fname (string) : name of file
-            res (np.array) : data
-    """
+        self.sig = np.array(sig)
 
-    pd.DataFrame(res).to_csv(fname, mode='a', index = False, header = False)
-
-def spike_in_the_middle(spikes, sample_len, i, t):
-
-    """
-        Cuts sample with spike in the middle
+        ann = [a for a in ann if a[2] == '']
+        latency  = np.array(np.array(ann)[:, 0])
+        duration = np.array(np.array(ann)[:, 1])
         
-        Parameters:
-            spikes (np.array): latency and duration of spikes 
-            sample_len (int) : length of sample
-            i (int)          : number of spike
-            t (np.array)     : time array
+        self.latency  = np.array([float(i) for i in latency])
+        self.duration = np.array([float(i) for i in duration])
+        
+        self.fs = reader.samplefrequency(channel)
+        self.t = np.linspace(0, len(sig) / self.fs, len(sig))
+        
+        self.spikes = [self.latency, self.duration]
+
+
+    def loading_data(self, sig, fs, data):
+
+        """ 
+            Loads information about spikes
+            (while working with searching algo)
             
-        Return:
-            start (int) : start of spike (time)
-            end   (int) : end of spike (time)
-    """
-        
-    spike_len = floor(spikes[1][i])
-    spike_start = (np.abs(t - spikes[0][i])).argmin()
-        
-    start =  spike_start - floor((sample_len - spike_len) / 2)
-    end = spike_start + spike_len + floor((51 - spike_len) / 2)
-        
-    if (end-start) != sample_len:
-        end += sample_len - (end - start)
-        
-    return([start, end])
+            Parameters:
+                sig (np.array): signal
+                fs (float)    : sampling frequency
+                data (dict)   : latency and duration of spikes
+        """
+        self.sig = sig
+        self.fs = fs
+        self.t = np.linspace(0, len(sig) / fs, len(sig))
 
-    
-def spike_in_the_end(spikes, sample_len, i, t):
+        data = pd.DataFrame(data)
+        spikes = []
+        spikes.append(data.loc[:, "latency"].to_numpy())
+        spikes.append(data.loc[:, "duration"].to_numpy())
+        self.spikes = np.array(spikes)
 
-    """
-        Cuts sample with spike in the end
-        
-        Parameters:
-            spikes (np.array): latency and duration of spikes 
-            sample_len (int) : length of sample
-            i (int)          : number of spike
-            t (np.array)     : time array
+
+    def saving_data(self, fname, res):
+
+        """
+            Saves data to csv
             
-        Return:
-            start (int) : start of spike (time)
-            end   (int) : end of spike (time)
-    """
-    
-    spike_len = floor(spikes[1][i])
-    spike_start = (np.abs(t - spikes[0][i])).argmin()
-    
-    start = spike_start - floor((51 - spike_len))
-    end = start + 51
-    
-    if (end-start) != sample_len:
-        start -= sample_len - (end - start)
+            Parameters:
+                fname (string) : name of file
+                res (np.array) : data
+        """
 
-    return([start, end])
- 
-    
-def spike_in_the_beginning(spikes, sample_len, i, t):
+        pd.DataFrame(res).to_csv(fname, mode='a', index = False, 
+                                                 header = False)
 
-    """
-        Cuts sample with spike in the beginning
-        
-        Parameters:
-            spikes (np.array): latency and duration of spikes 
-            sample_len (int) : length of sample
-            i (int)          : number of spike
-            t (np.array)     : time array
+    def spike_in_the_beginning(self, sample_len, i):
+
+        """
+            Cuts sample with spike in the beginning
             
-        Return:
-            start (int) : start of spike (time)
-            end   (int) : end of spike (time)
-    """
-
-    spike_len = np.int32(np.floor(spikes[1][i]))
-    start = np.searchsorted(t, spikes[0][i])
-
-    end = start + spike_len + floor((sample_len - spike_len))
-        
-    if (end-start) != sample_len:
-        end += sample_len - (end - start)
-        
-    return start, end
-    
-
-def normalization(spike):
-
-    """
-        Makes signal's value from 0 to 1
-        
-        Patameters:
-            spike (list) : signal
-        
-        Return:
-            spike (list) : normalized signal
-    """
-    
-    up = np.max(spike)
-    down = np.min(spike)
-    b = (up + down) / (up - down)
-    a = (1 - b) / down
-    spike = a * spike + b
-    return spike
-
-
-def plot(data, time):
-
-    """
-        Draws sample of signal
-        
-        Parameters:
-            data (np.array) : y
-            time (np.array) : x
-    """
-
-    plt.plot(time, data, figure=plt.figure(figsize=(10.0, 6.0)))
-    plt.show()
-
-
-def cutting_spikes(sig, spikes, t, fname):
-
-    """
-        Cuts signal to samples with spikes
-        
-        Parameters:
-            sig (np.array) : signal
-            spikes (list)  : latency and duration of spikes
-            t (np.array)   : time
-    """
-
-    sample_len = 51
-
-    res = []
-    not_spikes = []
-    starts = []
-    ends = []
-
-    for i in range(len(spikes[0])):
-    
-        spike = []
-        time = []
-        
-        if (SPIKE_IN_THE_MIDDLE):
-            data = spike_in_the_middle(spikes, sample_len, i, t)
-            start, end = data[0], data[1]
-        if (SPIKE_IN_THE_END):
-            data = spike_in_the_end(spikes, sample_len, i, t)
-            start, end = data[0], data[1]
-        if (SPIKE_IN_THE_BEGINNING):   
-            data = spike_in_the_beginning(spikes, sample_len, i, t) 
-            start, end = data[0], data[1]
-        if (end >= len(sig)):
-            continue        
-    
-        starts.append(start)
-        ends.append(end) 
-           
-        for n in range(start, end):
-            spike.append(sig[n])
-            time.append(t[n])
-        
-        #plot(spike, time)
-
-        spike = normalization(spike)
-        
-        
-        #plot(spike, time)
-        
-        res.append(spike)
-
-    res = np.array(res, dtype=object)
-    res = np.asanyarray(res)
-
-    saving_data(fname, res)
-
-    ends = [0] + ends
-    
-    return(starts, ends)
-
-
-def cutting_not_spikes(starts, ends, sig, t, fname):
-
-    """
-        Cuts signal to samples without spikes
-        
-        Parameters:
-            starts (list) : starts of spikes (time)
-            ends (list)   : ends of spikes (time)
-            sig (np.array): signal
-            t (np.array)  : time
-            fname (str)   : name of file to save
-    """
-
-    not_spikes = []
-    for i in range(len(starts)-1):
-       if (starts[i] - ends[i]) >= 50:
-            p = 0
-            while ((starts[i] - (ends[i] + 50 * p)) >= 50):
-                not_spike = []
-                time = []
-                for k in range(ends[i] + 50 * p, ends[i] + 50 * (p+1) + 1):
-                    not_spike.append(sig[k])
-                    time.append(t[k])
+            Parameters:
+                sample_len (int) : length of sample
+                i (int)          : number of spike
                 
-                #plot(not_spike, time)
-                   
-                not_spike = normalization(not_spike)
+            Return:
+                start (int) : start of spike (time)
+                end   (int) : end of spike (time)
+        """
+        spike_len = np.int32(np.floor(self.spikes[1][i]))
+        start = np.searchsorted(self.t, self.spikes[0][i])
+
+        end = start + spike_len + floor((sample_len - spike_len))
+            
+        if (end-start) != sample_len:
+            end += sample_len - (end - start)
+            
+        return ([start, end])
+
+
+    def spike_in_the_middle(self, sample_len, i):
+
+        """
+            Cuts sample with spike in the middle
+            
+            Parameters:
+                sample_len (int) : length of sample
+                i (int)          : number of spike
                 
-                not_spikes.append(not_spike) 
-                p += 1
+            Return:
+                start (int) : start of spike (time)
+                end   (int) : end of spike (time)
+        """
+            
+        spike_len = floor(self.spikes[1][i])
+        spike_start = (np.abs(self.t - self.spikes[0][i])).argmin()
+            
+        start =  spike_start - floor((sample_len - spike_len) / 2)
+        end = spike_start + spike_len + floor((51 - spike_len) / 2)
+            
+        if (end-start) != sample_len:
+            end += sample_len - (end - start)
+            
+        return([start, end])
+
+
+    def spike_in_the_end(self, sample_len, i):
+
+        """
+            Cuts sample with spike in the end
+            
+            Parameters:
+                sample_len (int) : length of sample
+                i (int)          : number of spike
                 
-    not_spikes = np.array(not_spikes, dtype=object)
-    not_spikes = np.asanyarray(not_spikes)
+            Return:
+                start (int) : start of spike (time)
+                end   (int) : end of spike (time)
+        """
+        
+        spike_len = floor(self.spikes[1][i])
+        spike_start = (np.abs(self.t - self.spikes[0][i])).argmin()
+        
+        start = spike_start - floor((51 - spike_len))
+        end = start + 51
+        
+        if (end-start) != sample_len:
+            start -= sample_len - (end - start)
+
+        return([start, end])
+
+
+    def normalization(self, spike):
+
+        """
+            Makes signal's value from 0 to 1
+            
+            Patameters:
+                spike (list) : signal
+            
+            Return:
+                spike (list) : normalized signal
+        """
+        
+        up = np.max(spike)
+        down = np.min(spike)
+        b = (up + down) / (up - down)
+        a = (1 - b) / down
+        spike = a * spike + b
+
+        return spike
+
+
+    def plot(data, time):
+
+        """
+            Draws sample of signal
+            
+            Parameters:
+                data (np.array) : y
+                time (np.array) : x
+        """
+
+        plt.plot(time, data, figure=plt.figure(figsize=(10.0, 6.0)))
+        plt.show()
+
+
+    def cutting_spikes(self, fname):
+
+        """
+            Cuts signal to samples with spikes
+            
+            Parameters:
+                fname (str) : name of file to save
+        """
+
+        sample_len = 51
+
+        res = []
+        not_spikes = []
+        starts = []
+        ends = []
+
+        for i in range(len(self.spikes[0])):
+        
+            spike = []
+            time = []
+            
+            if (SPIKE_IN_THE_MIDDLE):
+                data = self.spike_in_the_middle(sample_len, i)
+                start, end = data[0], data[1]
+            if (SPIKE_IN_THE_END):
+                data = self.spike_in_the_end(sample_len, i)
+                start, end = data[0], data[1]
+            if (SPIKE_IN_THE_BEGINNING):   
+                data = self.spike_in_the_beginning(sample_len, i) 
+                start, end = data[0], data[1]
+            if (end >= len(self.sig)):
+                continue        
+        
+            starts.append(start)
+            ends.append(end) 
+               
+            for n in range(start, end):
+                spike.append(self.sig[n])
+                time.append(self.t[n])
+            
+            #self.plot(spike, time)
+            spike = np.array(spike)
+            spike = self.normalization(spike)
+            
+            
+            #self.plot(spike, time)
+            
+            res.append(spike)
+
+        res = np.array(res, dtype=object)
+        res = np.asanyarray(res)
+
+        self.saving_data(fname, res)
+
+        ends = [0] + ends
+
+        self.starts = np.array(starts)
+        self.ends = np.array(ends)        
+
+
+
+    def cutting_not_spikes(self, fname):
+
+        """
+            Cuts signal to samples without spikes
+            
+            Parameters:
+                fname (str) : name of file to save
+        """
+
+        not_spikes = []
+        for i in range(len(self.starts)-1):
+           if (self.starts[i] - self.ends[i]) >= 50:
+                p = 0
+                while ((self.starts[i] - (self.ends[i] + 50 * p)) >= 50):
+                    not_spike = []
+                    time = []
+                    for k in range(self.ends[i] + 50 * p, 
+                                   self.ends[i] + 50 * (p+1) + 1):
+                        not_spike.append(self.sig[k])
+                        time.append(self.t[k])
+                    
+                    #self.plot(not_spike, time)
+                    not_spike = np.array(not_spike)   
+                    not_spike = self.normalization(not_spike)
+                    
+                    not_spikes.append(not_spike) 
+                    p += 1
+                    
+        not_spikes = np.array(not_spikes, dtype=object)
+        not_spikes = np.asanyarray(not_spikes)
+        
+        self.saving_data(fname, not_spikes)
+
+    def standalone(self, fname):
+
+        for ch in range(1):
     
-    saving_data(fname, not_spikes)
+            print("number ", ch)
+            self.read_from_bdf(fname, ch)
+            
+            fn  = 'data/spikes/channel_' + str(ch+1) + '.csv'
+            fn1 = 'data/not_spikes/channel_' + str(ch+1) + '.csv'
+            
+            self.cutting_spikes(fn)
+            self.cutting_not_spikes(fn1)
+
+
 
 if __name__ == '__main__':
-    read_from_bdf("24h_spikes.bdf", 3)
 
-# TODO: rework main to use this script standalone as it was in earlier versions
-# if __name__ == '__main__':   
-#     # Deletes previously made files 
-#     # to protect data from repeating
-    
-#     DELETE_PREV_FILES = True
-
-#     if DELETE_PREV_FILES:
-#         try:
-#             os.remove('data/not_spikes.csv')
-#             os.remove('data/spikes.csv')
-#         except FileNotFoundError:
-#             print('Files not found, nothing to remove')
-            
-    
-#     for sig_num in range(1, 7):
-#         if sig_num == 5:
-#             continue
-        
-#         # in final main file signal will be loaded before 
-#         # using 'candidates'
-    
-#         data   = loading_data(sig_num, candidates(sig), sig)
-#         sig    = data[0]
-#         spikes = data[1]
-#         t      = data[2]
-        
-#         data   = cutting_spikes(sig, spikes, t)
-#         starts = data[0] 
-#         ends   = data[1]
-        
-#         cutting_not_spikes(starts, ends, sig, t)
+    fname = input('Enter .bdf file name: ')
+    #fname = '24h_spikes.bdf'
+    c = cutter()
+    c.standalone(fname)
 
