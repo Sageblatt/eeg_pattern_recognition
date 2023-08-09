@@ -1,4 +1,4 @@
-from edflib import edfreader
+from EDFlib import edfreader
 from math import floor
 import numpy as np
 import pandas as pd
@@ -158,8 +158,8 @@ class cutter():
 
         return([start, end])
 
-
-    def normalization(self, spike):
+    @staticmethod
+    def normalization(spike):
 
         """
             Makes signal's value from 0 to 1
@@ -236,12 +236,12 @@ class cutter():
             
             #self.plot(spike, time)
             spike = np.array(spike)
-            spike = self.normalization(spike)
+            spike = self.normalization(np.array(spike))
             
             
             #self.plot(spike, time)
             
-            res.append(spike)
+            res.append(spike.to_list())
 
         res = np.array(res, dtype=object)
         res = np.asanyarray(res)
