@@ -4,17 +4,17 @@ import inspect
 from scipy.signal import resample as sp_resample
 
 
-
 class Signal(np.ndarray):
     """
         Represents signal as numpy array with new attribute — sampling 
-        frequency (Signal.fs) and several new methods.
+        frequency (Signal.fs) and several new methods. Copies the array with
+        numpy.ndarray.copy().
     """
     def __new__(cls, input_array: np.ndarray, fs: float | int):
         if input_array.ndim > 1:
-            raise TypeError('Signal supports only 1D arrays.')
+            raise TypeError('Signal supports only 1-D arrays.')
         
-        obj = np.asarray(input_array).view(cls).copy() # TODO: mention COPIES!
+        obj = np.asarray(input_array).view(cls).copy()
     
         obj.fs = fs
         
@@ -32,6 +32,24 @@ class Signal(np.ndarray):
                             'raise an exception. Consider creating new Signal '
                             'object from existing array.')
         return
+    
+    def __init__(self, input_array: np.ndarray, fs: float | int):
+        """
+        Initialises Signal object.
+
+        Parameters
+        ----------
+        input_array : np.ndarray
+            1-D array containing signal data.
+        fs : float | int
+            Sampling frequency.
+
+        Returns
+        -------
+        None.
+
+        """
+        pass
     
     def __str__(self):
         s1 = super().__str__()
