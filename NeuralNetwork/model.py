@@ -12,7 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from utils import load_data, fit_data, ModelException, check_model_fit, check_model_load, check_data_load, check_model_predict
-
+from models.template import ModelArchitecture
 
 
 
@@ -26,9 +26,16 @@ class Model:
         self.threshold = None
 
 
-    def load_data(self, spikes_path: str, no_spikes_path: str = None, print_info: bool = False, not_spike_proportion: float = 1.0,
-                 normalize: bool = False, randomize: bool = False) -> None:
-        data = load_data(spikes_path, no_spikes_path, print_info, not_spike_proportion)
+    def load_data(self, spikes_path: str, no_spikes_path: str = None,  not_spikes_number: int = -1,
+                normalize: bool = False, randomize: bool = False, print_info: bool = False,) -> None:
+        """
+        params
+            spikes_path:            path to spikes file
+            no_spikes_path:         path to no_spikes file, if None don't load 
+            not_spikes_number:      number of not spikes that will be used, if less than 0 use all
+            print_info:             print info
+        """
+        data = load_data(spikes_path, no_spikes_path, not_spikes_number,  print_info)
         self.X_train, self.X_test, self.y_train, self.y_test = fit_data(data, normalize, randomize)
         self.signal_size = self.X_train.shape[1]
 
@@ -37,16 +44,18 @@ class Model:
         self.model = keras.models.load_model(model_path)
 
     
-    def set_model(self, model_architecture: function, **kwargs) -> None:
+    def set_model(self, model_architecture: ModelArchitecture) -> None:
         try:
-            self.model = model_architecture(signal_size=self.signal_size, **kwargs) 
+            self.model = model_architecture.get_model(self.signal_size)
+            self.threshold = model_architecture.threshold
         except:
-            raise ModelException('problems with model getter function') 
+            raise ModelException('problems with model model architecture') 
     
 
     @check_model_load
     def predict(self, threshold: float = 0.5) -> None:
         self.y_pred = self.model.predict(self.X_test)
+        if self.threshold:      threshold = self.threshold
         self.change_threshold(threshold)
 
 
@@ -57,12 +66,13 @@ class Model:
 
 
     @check_model_load
-    def fit(self, batch_size: int = 16, validation_split: float = 0.2, epochs: int = 10, verbose: str = 'auto') -> None:
+    def fit(self, batch_size: int = 16, validation_split: float = 0.2, 
+            epochs: int = 10, verbose: str = 'auto') -> None:
         self.history = self.model.fit(self.X_train, self.y_train, batch_size=batch_size, 
                                           validation_split=validation_split, epochs=epochs, verbose=verbose)
 
 
-    @check_model_predict
+    @check_model_fit
     def plot_loss_function(self, save_fig: bool = False, file_name: str = 'loss_function.png') -> None:    
         plt.plot(self.history.history['loss'], label='test_split')
         plt.plot(self.history.history['val_loss'], label='valid_split')
@@ -84,10 +94,15 @@ class Model:
         print('ACCURACY SCORE: ', accuracy_score(self.y_test, self.y_pred_cat))
 
 
+    @check_data_load
+    def print_selection_info(self) -> None:
+        print(f'X_test:  spkies len = {len(self.y_test[self.y_test == 1])}, not_spikes len = {len(self.y_test[self.y_test == 0])}')
+        print(f'X_train: spkies len = {len(self.y_train[self.y_train == 1])}, not_spikes len = {len(self.y_train[self.y_train == 0])}')
+
     @check_model_predict
     def plot_confusion_matrix(self):
         cm = confusion_matrix(self.y_test, self.y_pred_cat)
-        sns.heatmap(cm, annot=True)
+        sns.heatmap(cm, annot=True, fmt='g')
         plt.title('confusion matrix')
         plt.xlabel('prediction')
         plt.ylabel('groud truth')

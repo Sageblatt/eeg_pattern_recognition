@@ -4,15 +4,30 @@ from sklearn.model_selection import train_test_split
 
 
 # get two datafiles' paths for training - with and without spikes
-def load_data(spikes_path: str, no_spikes_path: str = None, print_info: bool = False,
-             not_spike_proportion: float = 1.0) -> pd.DataFrame:
+def load_data(spikes_path: str, no_spikes_path: str = None, 
+              not_spikes_number: int = -1, print_info: bool = False) -> pd.DataFrame:
+    """
+    params: 
+        spikes_path:            path to spikes file
+        no_spikes_path:         path to no_spikes file, if None don't load 
+        not_spikes_number:      number of not spikes that will be used, if less than 0 use all
+        print_info:             print info
+    """
     data = pd.read_csv(spikes_path, header=None)
-    data['y'] = [1 for i in range(data.shape[0])]
+    data['y'] = [1] * data.shape[0]
     if no_spikes_path:
         data2 = pd.read_csv(no_spikes_path, header=None)
-        data2['y'] = [0 for i in range(data2.shape[0])]
-        remove_n = int(data2.shape[0] * (1 - not_spike_proportion))
-        data2.drop(np.random.choice(data2.index, remove_n, replace=False), inplace=True)
+        if not_spikes_number > 0:
+            if not_spikes_number > data2.shape[0]:   Exception('Not spikes number is greater than they in array')
+            data2 = data2[:not_spikes_number]
+        data2['y'] = [0] * data2.shape[0]
+
+        # if not_spikes_number > 0:
+        #     remove_n = data2.shape[0] - not_spikes_number
+        #     if remove_n <= 0:   Exception('Not spikes number is greater than they in array')
+        # else:
+        #     remove_n = int(data2.shape[0] * (1 - not_spike_proportion))
+        # data2.drop(np.random.choice(data2.index, remove_n, replace=False), inplace=True)
         if print_info:
             print(f' \n \n spikes len: {data.shape[0]},  not spikes len: {data2.shape[0]}')
         data = pd.concat([data, data2], axis=0, join='inner', ignore_index=True)
@@ -23,7 +38,7 @@ def load_data(spikes_path: str, no_spikes_path: str = None, print_info: bool = F
 # shuffle the data, cut into signs and answers
 # allocate part of the data for training and verification
 # data normalization
-def fit_data(data: pd.DataFrame, normolize: bool =False, randomize: bool =False) -> tuple[np.array, np.array, np.array, np.array]:
+def fit_data(data: pd.DataFrame, normolize: bool = False, randomize: bool = False) -> tuple[np.array, np.array, np.array, np.array]:
     if randomize:
         data = data.sample(frac=1)
 
@@ -39,14 +54,13 @@ def fit_data(data: pd.DataFrame, normolize: bool =False, randomize: bool =False)
     X_test = np.array([[element[i] for i in range(len(element)) if i >= 1] for element in X_test.to_numpy()])
     y_train = y_train.to_numpy().reshape((-1, 1))
     y_test = y_test.to_numpy().reshape((-1, 1))
-
+    
     # normalize
     if normolize:
         X_train = np.array(
             [[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_train])
         X_test = np.array(
             [[(el - element.min()) / (element.max() - element.min()) for el in element] for element in X_test])
-
     return (X_train, X_test, y_train, y_test)
 
 
