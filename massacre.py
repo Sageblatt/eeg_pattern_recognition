@@ -1,4 +1,4 @@
-from edflib import edfreader
+from EDFlib import edfreader
 from math import floor
 import numpy as np
 import pandas as pd
@@ -236,12 +236,12 @@ def cutting_spikes(sig, spikes, t, fname):
         
         #plot(spike, time)
 
-        spike = normalization(spike)
+        spike = normalization(np.array(spike))
         
         
         #plot(spike, time)
         
-        res.append(spike)
+        res.append(spike.tolist())
 
     res = np.array(res, dtype=object)
     res = np.asanyarray(res)
