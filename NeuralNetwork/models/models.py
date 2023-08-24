@@ -18,8 +18,10 @@ class Simple_Network(ModelArchitecture):
         return model
     
 
-class Custom_Model(ModelArchitecture):
+class Custom_Model_large(ModelArchitecture):
     """
+        work with 20k not spikes
+        about .42 recall with 20k not spikes
         first layer: 25-45 optimum neurons
     """
     def get_model(self, signal_size: int) -> keras.Model:
@@ -27,6 +29,27 @@ class Custom_Model(ModelArchitecture):
                                     Dense(32, activation='relu'),
                                     Dense(16, activation='tanh'),
                                     Dense(8, activation='relu'),
+                                    # Dropout(0.5),
+                                    Dense(1, activation='sigmoid')
+                                    ])
+        metrics = [Recall(name='recall', thresholds=[self.threshold])]
+        model.compile(optimizer='adam',
+                        loss='binary_crossentropy',
+                        metrics=metrics
+                        )
+        return model
+    
+
+class Custom_Model_small(ModelArchitecture):
+    """
+        work with 1k not spikes
+        about 0.85 recall
+    """
+    def get_model(self, signal_size: int) -> keras.Model:
+        model = keras.Sequential([Flatten(input_shape=(signal_size, 1)),
+                                    Dense(32, activation='relu'),
+                                    Dropout(0.5),
+                                    Dense(32, activation='tanh'),
                                     # Dropout(0.5),
                                     Dense(1, activation='sigmoid')
                                     ])

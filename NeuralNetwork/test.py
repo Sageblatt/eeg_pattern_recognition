@@ -34,11 +34,11 @@ def test_loaded_model(model_path: str = 'NeuralNetwork/models/model_old.h5') -> 
     model.plot_confusion_matrix()
 
 
-def test_custom_model(model_architecture: ModelArchitecture, epochs = 50, not_spikes_number = 20000) -> None:
+def test_custom_model(model_architecture: ModelArchitecture, epochs = 80, not_spikes_number = 1000) -> None:
     model = Model()
     model.load_data(spikes_path = 'data/learning 24h data/spikes/channel_3.csv',
                     no_spikes_path = 'data/learning 24h data/not_spikes/channel_3.csv',
-                    not_spikes_number=20000, normalize=True, print_info=True)
+                    not_spikes_number=not_spikes_number, normalize=True, print_info=True)
     model.set_model(model_architecture)
     model.fit(epochs=epochs)
     model.predict() 
@@ -52,7 +52,7 @@ def test_custom_model(model_architecture: ModelArchitecture, epochs = 50, not_sp
 
 
 if __name__ == '__main__':
-    test_custom_model(model_architecture = models.Custom_Model_large(threshold=0.5))
+    test_custom_model(model_architecture = models.Custom_Model_small(threshold=0.5))
 
 
     """
