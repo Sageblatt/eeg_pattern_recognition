@@ -5,7 +5,7 @@ import scipy.fft as fft
 from multiprocessing import Pool, cpu_count
 import itertools
 
-from scipy.signal import buttord, butter, sosfilt
+from scipy.signal import buttord, butter, sosfilt, find_peaks
 from scipy.signal import resample as sp_resample
 
 
@@ -132,7 +132,8 @@ class Signal(np.ndarray):
         self.fs = new_sig.fs
         return
     
-    def pts(self, left_idx: int = 0, right_idx: int = -1):
+    def pts(self, left_idx: int = 0,
+            right_idx: int = -1) -> tuple[np.ndarray, np.ndarray]:
         """
         Get time array and signal data as tuple to use in 
         matplotlib.pyplot.plot(). Slicing is also available via optional 
@@ -300,6 +301,76 @@ class Signal(np.ndarray):
 
         """
         return fft.rfftfreq(self.size, 1 / self.fs), np.abs(fft.rfft(self))
+    
+    
+    def get_candidates(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Method's description.
+
+        Returns
+        -------
+        duration : TYPE
+            DESCRIPTION.
+        latency : TYPE
+            DESCRIPTION.
+
+        """
+        t = self.get_time()
+        
+        high_peaks_indexes = find_peaks(self)[0]
+        high_peaks = [self[i] for i in high_peaks_indexes]
+        low_peaks_indexes = find_peaks(self*-1)[0]
+        low_peaks = [self[i] for i in low_peaks_indexes]
+
+        delta = []
+        if len(high_peaks) < len(low_peaks):
+            for i in range(len(high_peaks)):
+                if high_peaks[i] - low_peaks[i] > 0.05:
+                    delta.append(high_peaks[i] - low_peaks[i])            
+        else:
+            for i in range(len(low_peaks)):
+                if high_peaks[i] - low_peaks[i] > 0.05:
+                    delta.append(high_peaks[i] - low_peaks[i])
+                    
+        width_avg = np.mean(delta)
+        spikes_num = 0
+        spikes = []
+        times = []
+        i = 0
+        while i < len(high_peaks) - 2:
+            if abs(high_peaks[i] - low_peaks[i]) >= 4 * width_avg or abs(high_peaks[i] - low_peaks[i+1]) >= 4 * width_avg:
+                spikes_num = spikes_num + 1
+                spike = []
+                time = []
+                
+                if i >= 2 and i + 5 <= len(high_peaks) - 1:
+                    for j in self[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]:
+                        spike.append(j)
+                    for k in t[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]:
+                        time.append(k)
+                elif i < 2 or i + 5 > len(high_peaks) - 1:
+                    if i < 2:
+                        delt1 = 0
+                    else:
+                        delt1 = i - 2
+                    if i + 5 > len(high_peaks) - 1:
+                        delt2 = len(high_peaks) - i - 1
+                    else:
+                        delt2 = 4
+                    for j in self[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]:
+                        spike.append(j)
+                    for k in t[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]:
+                        time.append(k)
+                spikes.append(spike)
+                times.append(time)
+                i = i + 4
+            else:
+                i = i + 1
+        
+        duration = np.array([len(spikes[i]) for i in range(len(spikes))])
+        latency = np.array([times[i][0] for i in range(len(times))])
+
+        return duration, latency
 
     
 
