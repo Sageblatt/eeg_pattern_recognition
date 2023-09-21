@@ -1,6 +1,11 @@
 import numpy as np
 import inspect
+import scipy.fft as fft
 
+from multiprocessing import Pool, cpu_count
+import itertools
+
+from scipy.signal import buttord, butter, sosfilt
 from scipy.signal import resample as sp_resample
 
 
@@ -11,8 +16,29 @@ class Signal(np.ndarray):
         numpy.ndarray.copy().
     """
     def __new__(cls, input_array: np.ndarray, fs: float | int):
+        """
+        Method to correctly create np.ndarray subclass.
+
+        Parameters
+        ----------
+        input_array : np.ndarray
+            1-D array containing signal data.
+        fs : float | int
+            Sampling frequency.
+
+        Raises
+        ------
+        TypeError
+            Only 1D arrays are supported.
+
+        Returns
+        -------
+        obj : Signal
+            Created object.
+
+        """
         if input_array.ndim > 1:
-            raise TypeError('Signal supports only 1-D arrays.')
+            raise TypeError('Signal supports only 1D arrays.')
         
         obj = np.asarray(input_array).view(cls).copy()
     
@@ -21,6 +47,9 @@ class Signal(np.ndarray):
         return obj
 
     def __array_finalize__(self, obj):
+        """
+        Extra method for correct numpy.ndarray subclassing.
+        """
         if obj is None: 
             return
 
@@ -33,9 +62,24 @@ class Signal(np.ndarray):
                             'object from existing array.')
         return
     
+    def __reduce__(self):
+        """ 
+        Extra method for pickling, which is used in multiprocessing.
+        """
+        pickled_state = super().__reduce__()
+        new_state = pickled_state[2] + (self.__dict__,)
+        return (pickled_state[0], pickled_state[1], new_state)
+    
+    def __setstate__(self, state):
+        """ 
+        Extra method for pickling, which is used in multiprocessing.
+        """
+        self.__dict__.update(state[-1])
+        super().__setstate__(state[0:-1])
+    
     def __init__(self, input_array: np.ndarray, fs: float | int):
         """
-        Initialises Signal object.
+        See __new__ method.
 
         Parameters
         ----------
@@ -44,14 +88,13 @@ class Signal(np.ndarray):
         fs : float | int
             Sampling frequency.
 
-        Returns
-        -------
-        None.
-
         """
         pass
     
     def __str__(self):
+        """
+        Allows to print Signal object in the same manner as numpy.ndarray.
+        """
         s1 = super().__str__()
         return s1 + f'\nSampling frequency:  {self.fs} Hz'
     
@@ -124,18 +167,159 @@ class Signal(np.ndarray):
         """
         return self.get_time()[left_idx:right_idx], self[left_idx:right_idx]
     
+    
+    @staticmethod
+    def _high_pass(signal: 'Signal', threshold: int | float) -> 'Signal':
+        """
+        Function that cuts frequencies lower than threshold 
+        for given signal slice.
+
+        Parameters
+        ----------
+        signal : 'Signal'
+            Signal to be processed.
+        threshold : int | float
+            Frequency threshold.
+
+        Returns
+        -------
+        'Signal'
+            Signal with applied filter.
+
+        """
+        x_f = fft.rfftfreq(signal.size, 1 / signal.fs)
+        y_f = fft.rfft(signal)
+        y_f[(x_f <= threshold)] = 0
+        return Signal(fft.irfft(y_f), signal.fs)
+    
+    
+    def apply_hp(self, threshold: int | float, parallel: bool = False) -> None: # TODO: windows
+        """
+        Removes high pass filter to the whole signal.
+
+        Parameters
+        ----------
+        threshold : int | float
+            Threshold of the filter.
+        parallel : bool, optional
+            If `True` will use all CPU cores to compute the result.
+            The default is `False`.
+
+        Returns
+        -------
+        None
+
+        """
+        window_size = 10
+        delta = self.size % window_size
+        
+        cut_sig = np.array_split(self[:-delta-window_size],
+                                 self.size // window_size - 1)
+        
+        cut_sig.append(self[-delta-window_size:])
+        
+        
+        if parallel:
+            pool = Pool(cpu_count())
+            cut_sig = pool.starmap(Signal._high_pass,
+                                   zip(cut_sig, itertools.repeat(threshold)))
+            pool.close()
+            pool.join()
+        else:
+            for i in range(len(cut_sig)):
+                cut_sig[i] = Signal._high_pass(cut_sig[i], threshold)
+                
+        self[:] = np.concatenate(cut_sig)
+        return
+    
+    def denoise(self) -> None:
+        """
+        Removes electical hum (50 Hz and divisible by 25 Hz frequencies) from
+        whole signal.
+
+        Raises
+        ------
+        NotImplementedError
+            When signal's sampling frequency is higher than 250 Hz filter
+            for 125Hz peak may work incorrectly.
+
+        Returns
+        -------
+        None
+
+        """
+        xf = fft.rfftfreq(self.size, 1 / self.fs) # TODO: adaptive algorithm using iirnotch
+        yf = np.abs(fft.rfft(self))
+        
+        freqs = [25, 50, 75, 100, 125]
+        coefs = [5, 3, 5, 3, 5]
+        bool_freqs = np.zeros(len(freqs))
+        
+        for i in range(len(freqs)):
+            if np.max(yf[np.abs(xf - freqs[i]) < 0.3]) > \
+                coefs[i] * np.mean(yf[(0.5 < np.abs(xf - freqs[i])) & (np.abs(xf - freqs[i]) < 1.5)]):
+                bool_freqs[i] = 1
+        
+        print(bool_freqs)
+        
+        sos = []
+        
+        if bool_freqs[0]:
+            ord, wn = buttord([24.5, 26.5], [24.9, 25.1], 2, 5, fs=self.fs)
+            sos.append(butter(ord, wn, 'bs', fs=self.fs, output='sos'))
+        if bool_freqs[1]:
+            ord, wn = buttord([49, 51], [49.9, 50.1], 5, 30, fs=self.fs)
+            sos.append(butter(ord, wn, 'bs', fs=self.fs, output='sos'))
+        if bool_freqs[2]:
+            ord, wn = buttord([74.5, 76.5], [74.9, 75.1], 2, 5, fs=self.fs)
+            sos.append(butter(ord, wn, 'bs', fs=self.fs, output='sos'))
+        if bool_freqs[3]:
+            ord, wn = buttord([99, 101], [99.95, 100.05], 3, 30, fs=self.fs)
+            sos.append(butter(ord, wn, 'bs', fs=self.fs, output='sos'))
+        if bool_freqs[4]:
+            if self.fs > 252:
+                raise NotImplementedError('Sampling frequency is higher than '
+                                          '250 Hz. Unsupported.')
+            ord, wn = buttord(124.7, 124.8, 15, 25, fs=self.fs)
+            sos.append(butter(ord, wn, 'lp', fs=self.fs, output='sos'))
+        
+        for f in sos:
+            self[:] = sosfilt(f, self[:])
+    
+        return
+    
+    def get_spectrum(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get two arrays, containing signals spectrum: frequency '
+        'array and amplitudes.
+
+        Returns
+        -------
+        np.ndarray, numpy.ndarray
+            First array -- frequencies, second one -- amplitudes.
+
+        """
+        return fft.rfftfreq(self.size, 1 / self.fs), np.abs(fft.rfft(self))
+
+    
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    x = np.linspace(0, 10, 50)
-    y = np.sin(x)
+    fs = 250
+    x = np.arange(0, 1, 1/fs)
+    y = np.random.rand(x.size) + np.sin(2*np.pi*50*x)*15
     
-    s = Signal(y, 3000)
+    s = Signal(y, fs)
     
-    plt.plot(s.get_time(), s, 'b-')
-    s.resample(1500)
-    plt.plot(*s.pts(2, 3), "kv")
-    print(s.fs)
+    plt.plot(*s.pts(), "kv")
+    s.apply_hp(1, True)
+    s.denoise()
+    plt.plot(*s.pts(), "ro")
+    
+    fig = plt.figure(figsize=(9., 6.), dpi=300)
+    
+    plt.plot(*s.get_spectrum())
+
     
     
     
