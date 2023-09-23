@@ -328,39 +328,41 @@ class Signal(np.ndarray):
         delta = delta[delta > 0.05]
                     
         width_avg = np.mean(delta)
-        spikes_num = 0
         spikes = []
         times = []
         i = 0
-        while i < len(high_peaks) - 2:
-            if abs(high_peaks[i] - low_peaks[i]) >= 4 * width_avg or abs(high_peaks[i] - low_peaks[i+1]) >= 4 * width_avg:
-                spikes_num = spikes_num + 1
-                spike = []
+        while i < high_peaks.size - 2:
+            if abs(high_peaks[i] - low_peaks[i]) >= 4 * width_avg or \
+                    abs(high_peaks[i] - low_peaks[i+1]) >= 4 * width_avg:
+                spike = None
                 time = None
                 
-                if i >= 2 and i + 5 <= len(high_peaks) - 1:
-                    for j in self[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]:
-                        spike.append(j)
+                if i >= 2 and i + 5 <= high_peaks.size - 1:
+                    spike = self[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]
                     time = t[high_peaks_indexes[i-2]]
-                elif i < 2 or i + 5 > len(high_peaks) - 1:
+                    
+                else:
                     if i < 2:
                         delt1 = 0
                     else:
                         delt1 = i - 2
-                    if i + 5 > len(high_peaks) - 1:
-                        delt2 = len(high_peaks) - i - 1
+                        
+                    if i + 5 > high_peaks.size - 1:
+                        delt2 = high_peaks.size - i - 1
                     else:
                         delt2 = 4
-                    for j in self[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]:
-                        spike.append(j)
+                        
+                    spike = self[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]
                     time = t[high_peaks_indexes[delt1]]
-                spikes.append(spike)
+                    
+                spikes.append(spike.size)
                 times.append(time)
-                i = i + 4
+                i += 4
+                
             else:
-                i = i + 1
+                i += 1
         
-        duration = np.array([len(spikes[i]) for i in range(len(spikes))])
+        duration = np.array(spikes)
         latency = np.array(times)
 
         return duration, latency
