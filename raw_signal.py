@@ -305,32 +305,30 @@ class Signal(np.ndarray):
     
     def get_candidates(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        Method's description.
+        finds signal segments that are most likely to be spikes
 
         Returns
         -------
-        duration : TYPE
-            DESCRIPTION.
-        latency : TYPE
-            DESCRIPTION.
+        duration : numpy.ndarray
+            durations of alleged spikes.
+        latency : numpy.ndarray
+            latencies of alleged spikes.
 
         """
         t = self.get_time()
         
         high_peaks_indexes = find_peaks(self)[0]
-        high_peaks = [self[i] for i in high_peaks_indexes]
+        high_peaks = self[high_peaks_indexes]
+        
         low_peaks_indexes = find_peaks(self*-1)[0]
-        low_peaks = [self[i] for i in low_peaks_indexes]
+        low_peaks = self[low_peaks_indexes]
 
-        delta = []
         if len(high_peaks) < len(low_peaks):
-            for i in range(len(high_peaks)):
-                if high_peaks[i] - low_peaks[i] > 0.05:
-                    delta.append(high_peaks[i] - low_peaks[i])            
-        else:
-            for i in range(len(low_peaks)):
-                if high_peaks[i] - low_peaks[i] > 0.05:
-                    delta.append(high_peaks[i] - low_peaks[i])
+        deltas = high_peaks - low_peaks[:len(high_peaks) - len(low_peaks)]
+        delta = deltas[deltas > 0.05]
+    else:
+        deltas = high_peaks - low_peaks[:len(low_peaks) - len(high_peaks)]
+        delta = deltas[deltas > 0.05]
                     
         width_avg = np.mean(delta)
         spikes_num = 0
