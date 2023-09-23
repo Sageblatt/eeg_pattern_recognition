@@ -261,8 +261,6 @@ class Signal(np.ndarray):
                 coefs[i] * np.mean(yf[(0.5 < np.abs(xf - freqs[i])) & (np.abs(xf - freqs[i]) < 1.5)]):
                 bool_freqs[i] = 1
         
-        print(bool_freqs)
-        
         sos = []
         
         if bool_freqs[0]:
@@ -305,14 +303,16 @@ class Signal(np.ndarray):
     
     def get_candidates(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        finds signal segments that are most likely to be spikes
+        Finds signal's segments that are most likely to be spikes.
 
         Returns
         -------
         duration : numpy.ndarray
-            durations of alleged spikes.
+            Durations of alleged spikes (number of samples in each
+            alleged spike).
         latency : numpy.ndarray
-            latencies of alleged spikes.
+            Starting points for each alleged spike (in seconds, the record 
+            starts at 0 seconds).
 
         """
         t = self.get_time()
@@ -322,13 +322,10 @@ class Signal(np.ndarray):
         
         low_peaks_indexes = find_peaks(self*-1)[0]
         low_peaks = self[low_peaks_indexes]
-
-        if len(high_peaks) < len(low_peaks):
-        deltas = high_peaks - low_peaks[:len(high_peaks) - len(low_peaks)]
-        delta = deltas[deltas > 0.05]
-    else:
-        deltas = high_peaks - low_peaks[:len(low_peaks) - len(high_peaks)]
-        delta = deltas[deltas > 0.05]
+        
+        lower_size = min(high_peaks.size, low_peaks.size)
+        delta = high_peaks[:lower_size] - low_peaks[:lower_size]
+        delta = delta[delta > 0.05]
                     
         width_avg = np.mean(delta)
         spikes_num = 0
@@ -339,13 +336,12 @@ class Signal(np.ndarray):
             if abs(high_peaks[i] - low_peaks[i]) >= 4 * width_avg or abs(high_peaks[i] - low_peaks[i+1]) >= 4 * width_avg:
                 spikes_num = spikes_num + 1
                 spike = []
-                time = []
+                time = None
                 
                 if i >= 2 and i + 5 <= len(high_peaks) - 1:
                     for j in self[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]:
                         spike.append(j)
-                    for k in t[high_peaks_indexes[i-2]:high_peaks_indexes[i+5]]:
-                        time.append(k)
+                    time = t[high_peaks_indexes[i-2]]
                 elif i < 2 or i + 5 > len(high_peaks) - 1:
                     if i < 2:
                         delt1 = 0
@@ -357,8 +353,7 @@ class Signal(np.ndarray):
                         delt2 = 4
                     for j in self[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]:
                         spike.append(j)
-                    for k in t[high_peaks_indexes[delt1]:high_peaks_indexes[i+delt2]]:
-                        time.append(k)
+                    time = t[high_peaks_indexes[delt1]]
                 spikes.append(spike)
                 times.append(time)
                 i = i + 4
@@ -366,7 +361,7 @@ class Signal(np.ndarray):
                 i = i + 1
         
         duration = np.array([len(spikes[i]) for i in range(len(spikes))])
-        latency = np.array([times[i][0] for i in range(len(times))])
+        latency = np.array(times)
 
         return duration, latency
 
@@ -375,19 +370,23 @@ class Signal(np.ndarray):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     fs = 250
-    x = np.arange(0, 1, 1/fs)
-    y = np.random.rand(x.size) + np.sin(2*np.pi*50*x)*15
+    x = np.arange(0, 5, 1/fs)
+    # y = np.random.rand(x.size) + np.sin(2*np.pi*50*x)*15
+    y = 25 * x* np.sin(2*np.pi*1*x) * \
+        np.sin(2*np.pi*5*x) * np.cos(2*np.pi*7*np.cos(2*np.pi*3.4*x))
     
     s = Signal(y, fs)
     
     plt.plot(*s.pts(), "kv")
     s.apply_hp(1, True)
-    s.denoise()
+    # s.denoise()
     plt.plot(*s.pts(), "ro")
     
     fig = plt.figure(figsize=(9., 6.), dpi=300)
     
     plt.plot(*s.get_spectrum())
+    print(s.get_candidates()) # out is 15, 25, 16, 23 probably this code
+    # snippet should be included in tests
 
     
     
