@@ -132,6 +132,23 @@ class Signal(np.ndarray):
         self.fs = new_sig.fs
         return
     
+    def normalize(self):
+        """
+        Normalizes the Signal, so the maximum value is +1 and the minimal value
+        is -1.
+
+        Returns
+        -------
+        None
+
+        """
+        up = np.max(self)
+        down = np.min(self)
+        a = 2 / (up - down)
+        b = -1 - a * down
+        self[:] =  a * self + b
+        return
+    
     def pts(self, left_idx: int = 0,
             right_idx: int = -1) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -371,24 +388,38 @@ class Signal(np.ndarray):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    fs = 250
-    x = np.arange(0, 5, 1/fs)
-    # y = np.random.rand(x.size) + np.sin(2*np.pi*50*x)*15
-    y = 25 * x* np.sin(2*np.pi*1*x) * \
-        np.sin(2*np.pi*5*x) * np.cos(2*np.pi*7*np.cos(2*np.pi*3.4*x))
+    # fs = 250
+    # x = np.arange(0, 5, 1/fs)
+    # # y = np.random.rand(x.size) + np.sin(2*np.pi*50*x)*15
+    # y = 25 * x* np.sin(2*np.pi*1*x) * \
+    #     np.sin(2*np.pi*5*x) * np.cos(2*np.pi*7*np.cos(2*np.pi*3.4*x))
     
-    s = Signal(y, fs)
+    # s = Signal(y, fs)
     
-    plt.plot(*s.pts(), "kv")
-    s.apply_hp(1, True)
-    # s.denoise()
-    plt.plot(*s.pts(), "ro")
+    # plt.plot(*s.pts(), "kv")
+    # s.apply_hp(1, True)
+    # # s.denoise()
+    # plt.plot(*s.pts(), "ro")
     
-    fig = plt.figure(figsize=(9., 6.), dpi=300)
+    # fig = plt.figure(figsize=(9., 6.), dpi=300)
     
-    plt.plot(*s.get_spectrum())
-    print(s.get_candidates()) # out is 15, 25, 16, 23 probably this code
+    # plt.plot(*s.get_spectrum())
+    # print(s.get_candidates()) # out is 15, 25, 16, 23 probably this code
     # snippet should be included in tests
+    
+    
+    x = np.linspace(0, 10, 500)
+    
+    p = np.sin(x)
+    r = 5 * np.sin(x)
+    
+    s1 = Signal(p, 100)
+    s2 = Signal(r, 100)
+    
+    s2.normalize()
+    
+    plt.plot(*s1.pts())
+    plt.plot(*s2.pts())
 
     
     

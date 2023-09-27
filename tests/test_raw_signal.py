@@ -47,6 +47,20 @@ class TestRawSignal(unittest.TestCase):
 
         self.assertIsNone(assert_almost_equal(s, y1, decimal=2), 'Expected signals '
                           'to be closer than 1e-2 after resampling.')
+    
+    def test_normalizing(self):
+        x = np.linspace(0, 10, 500)
+        
+        p = np.sin(x)
+        r = 5 * np.sin(x)
+        
+        s1 = Signal(p, 100)
+        s2 = Signal(r, 100)
+        
+        s2.normalize()
+        self.assertIsNone(assert_almost_equal(s2, s1, decimal=2), 'Expected signals '
+                          'to be closer than 1e-2 after normalization.')
+        
         
     def test_high_pass(self):
         def plateau(x):
